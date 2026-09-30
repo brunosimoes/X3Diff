@@ -1,0 +1,325 @@
+{
+  "schemaVersion": "1.0",
+  "toolVersion": "0.1.0",
+  "inputs": {
+    "before": {
+      "name": "before.x3d",
+      "byteLength": 5985,
+      "components": [],
+      "parsedNodeCount": 38,
+      "x3dVersion": "3.3",
+      "profile": "Immersive"
+    },
+    "after": {
+      "name": "after.x3d",
+      "byteLength": 5893,
+      "components": [],
+      "parsedNodeCount": 38,
+      "x3dVersion": "3.3",
+      "profile": "Immersive"
+    }
+  },
+  "config": {
+    "floatAbs": 0.000001,
+    "floatRel": 0.000001,
+    "vectorAbs": 0.00001,
+    "rotationRadians": 0.00001,
+    "colorAbs": 0.0001,
+    "enabledCategories": [
+      "all"
+    ]
+  },
+  "summary": {
+    "status": "complete",
+    "countsByKind": {
+      "documentContextChanged": 1,
+      "nodeRenamed": 5
+    },
+    "countsBySeverity": {
+      "critical": 0,
+      "high": 0,
+      "medium": 5,
+      "low": 1,
+      "info": 0
+    },
+    "unsupportedCount": 0
+  },
+  "changes": [
+    {
+      "id": "c00001",
+      "kind": "documentContextChanged",
+      "severity": "low",
+      "confidence": "high",
+      "category": "document",
+      "message": "Document META changed",
+      "before": {
+        "value": [
+          "created\u00002 September 2009",
+          "creator\u0000Don Brutzman and MV3204 class",
+          "description\u0000Connecting TimeSensor nodes so that the completion of one behavior chain triggers another.",
+          "generator\u0000X3D-Edit 3.3, https://savage.nps.edu/X3D-Edit",
+          "identifier\u0000https://www.web3d.org/x3d/content/examples/X3dForWebAuthors/Chapter07EventAnimationInterpolation/TimeSensorChaining.x3d",
+          "license\u0000../license.html",
+          "modified\u000020 October 2019",
+          "title\u0000TimeSensorChaining.x3d",
+          "warning\u0000under development"
+        ]
+      },
+      "after": {
+        "value": [
+          "created\u00002 September 2009",
+          "creator\u0000Don Brutzman and MV3204 class",
+          "description\u0000Connecting TimeSensor nodes so that the completion of one behavior chain triggers another.",
+          "generator\u0000X3D-Edit 4.0, https://savage.nps.edu/X3D-Edit",
+          "identifier\u0000https://www.web3d.org/x3d/content/examples/X3dForWebAuthors/Chapter07EventAnimationInterpolation/TimeSensorChaining.x3d",
+          "license\u0000../license.html",
+          "modified\u000027 August 2023",
+          "title\u0000TimeSensorChaining.x3d",
+          "warning\u0000under development"
+        ]
+      }
+    },
+    {
+      "id": "c00002",
+      "kind": "nodeRenamed",
+      "severity": "medium",
+      "confidence": "high",
+      "category": "identity",
+      "message": "DEF SetTextShut renamed to SetTextClosed",
+      "before": {
+        "value": "SetTextShut"
+      },
+      "after": {
+        "value": "SetTextClosed"
+      },
+      "beforePath": "/X3D/Scene/IntegerTrigger[3]",
+      "afterPath": "/X3D/Scene/IntegerTrigger[3]",
+      "beforeNode": {
+        "nodeType": "IntegerTrigger",
+        "defName": "SetTextShut",
+        "scopePath": "/",
+        "path": "/X3D/Scene/IntegerTrigger[3]",
+        "source": {
+          "elementPath": "/X3D/Scene/IntegerTrigger[3]"
+        }
+      },
+      "afterNode": {
+        "nodeType": "IntegerTrigger",
+        "defName": "SetTextClosed",
+        "scopePath": "/",
+        "path": "/X3D/Scene/IntegerTrigger[3]",
+        "source": {
+          "elementPath": "/X3D/Scene/IntegerTrigger[3]"
+        }
+      }
+    },
+    {
+      "id": "c00003",
+      "kind": "nodeRenamed",
+      "severity": "medium",
+      "confidence": "high",
+      "category": "identity",
+      "message": "DEF ClockNumber1 renamed to Clock1",
+      "before": {
+        "value": "ClockNumber1"
+      },
+      "after": {
+        "value": "Clock1"
+      },
+      "beforePath": "/X3D/Scene/TimeSensor[1]",
+      "afterPath": "/X3D/Scene/TimeSensor[1]",
+      "beforeNode": {
+        "nodeType": "TimeSensor",
+        "defName": "ClockNumber1",
+        "scopePath": "/",
+        "path": "/X3D/Scene/TimeSensor[1]",
+        "source": {
+          "elementPath": "/X3D/Scene/TimeSensor[1]"
+        }
+      },
+      "afterNode": {
+        "nodeType": "TimeSensor",
+        "defName": "Clock1",
+        "scopePath": "/",
+        "path": "/X3D/Scene/TimeSensor[1]",
+        "source": {
+          "elementPath": "/X3D/Scene/TimeSensor[1]"
+        }
+      }
+    },
+    {
+      "id": "c00004",
+      "kind": "nodeRenamed",
+      "severity": "medium",
+      "confidence": "high",
+      "category": "identity",
+      "message": "DEF ClockNumber2 renamed to Clock2",
+      "before": {
+        "value": "ClockNumber2"
+      },
+      "after": {
+        "value": "Clock2"
+      },
+      "beforePath": "/X3D/Scene/TimeSensor[2]",
+      "afterPath": "/X3D/Scene/TimeSensor[2]",
+      "beforeNode": {
+        "nodeType": "TimeSensor",
+        "defName": "ClockNumber2",
+        "scopePath": "/",
+        "path": "/X3D/Scene/TimeSensor[2]",
+        "source": {
+          "elementPath": "/X3D/Scene/TimeSensor[2]"
+        }
+      },
+      "afterNode": {
+        "nodeType": "TimeSensor",
+        "defName": "Clock2",
+        "scopePath": "/",
+        "path": "/X3D/Scene/TimeSensor[2]",
+        "source": {
+          "elementPath": "/X3D/Scene/TimeSensor[2]"
+        }
+      }
+    },
+    {
+      "id": "c00005",
+      "kind": "nodeRenamed",
+      "severity": "medium",
+      "confidence": "high",
+      "category": "identity",
+      "message": "DEF ClockNumber3 renamed to Clock3",
+      "before": {
+        "value": "ClockNumber3"
+      },
+      "after": {
+        "value": "Clock3"
+      },
+      "beforePath": "/X3D/Scene/TimeSensor[3]",
+      "afterPath": "/X3D/Scene/TimeSensor[3]",
+      "beforeNode": {
+        "nodeType": "TimeSensor",
+        "defName": "ClockNumber3",
+        "scopePath": "/",
+        "path": "/X3D/Scene/TimeSensor[3]",
+        "source": {
+          "elementPath": "/X3D/Scene/TimeSensor[3]"
+        }
+      },
+      "afterNode": {
+        "nodeType": "TimeSensor",
+        "defName": "Clock3",
+        "scopePath": "/",
+        "path": "/X3D/Scene/TimeSensor[3]",
+        "source": {
+          "elementPath": "/X3D/Scene/TimeSensor[3]"
+        }
+      }
+    },
+    {
+      "id": "c00006",
+      "kind": "nodeRenamed",
+      "severity": "medium",
+      "confidence": "high",
+      "category": "identity",
+      "message": "DEF UserClick renamed to UserSelectDoor",
+      "before": {
+        "value": "UserClick"
+      },
+      "after": {
+        "value": "UserSelectDoor"
+      },
+      "beforePath": "/X3D/Scene/Transform[1]/TouchSensor[1]",
+      "afterPath": "/X3D/Scene/Transform[1]/TouchSensor[1]",
+      "beforeNode": {
+        "nodeType": "TouchSensor",
+        "defName": "UserClick",
+        "scopePath": "/",
+        "path": "/X3D/Scene/Transform[1]/TouchSensor[1]",
+        "source": {
+          "elementPath": "/X3D/Scene/Transform[1]/TouchSensor[1]"
+        }
+      },
+      "afterNode": {
+        "nodeType": "TouchSensor",
+        "defName": "UserSelectDoor",
+        "scopePath": "/",
+        "path": "/X3D/Scene/Transform[1]/TouchSensor[1]",
+        "source": {
+          "elementPath": "/X3D/Scene/Transform[1]/TouchSensor[1]"
+        }
+      }
+    }
+  ],
+  "diagnostics": [],
+  "catalog": {
+    "version": "3.3",
+    "modelSha256": "6d9561c4398512e9a891e1221667b6a11994c20979aa4bbcabc21cbf056c0eae",
+    "schemaSha256": "a687b059a480a599b4bba0ca78c20ed17202ffe06450c24379833e3a26fe875b",
+    "supportedNodes": [
+      "Anchor",
+      "Appearance",
+      "Background",
+      "BooleanFilter",
+      "BooleanTrigger",
+      "Box",
+      "ColorInterpolator",
+      "Coordinate",
+      "Cylinder",
+      "FontStyle",
+      "Group",
+      "ImageTexture",
+      "IndexedFaceSet",
+      "Inline",
+      "IntegerTrigger",
+      "Material",
+      "MetadataBoolean",
+      "MetadataDouble",
+      "MetadataFloat",
+      "MetadataInteger",
+      "MetadataSet",
+      "MetadataString",
+      "OrientationInterpolator",
+      "ScalarInterpolator",
+      "Shape",
+      "Sphere",
+      "Switch",
+      "Text",
+      "TimeSensor",
+      "TimeTrigger",
+      "TouchSensor",
+      "Transform",
+      "Viewpoint",
+      "WorldInfo"
+    ],
+    "supportedFieldTypes": [
+      "MFColor",
+      "MFColorRGBA",
+      "MFDouble",
+      "MFFloat",
+      "MFInt32",
+      "MFNode",
+      "MFRotation",
+      "MFString",
+      "MFTime",
+      "MFVec2d",
+      "MFVec2f",
+      "MFVec3d",
+      "MFVec3f",
+      "SFBool",
+      "SFColor",
+      "SFColorRGBA",
+      "SFDouble",
+      "SFFloat",
+      "SFInt32",
+      "SFNode",
+      "SFRotation",
+      "SFString",
+      "SFTime",
+      "SFVec2d",
+      "SFVec2f",
+      "SFVec3d",
+      "SFVec3f",
+      "SFVec4f"
+    ]
+  }
+}

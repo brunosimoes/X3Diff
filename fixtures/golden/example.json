@@ -1,0 +1,377 @@
+{
+  "schemaVersion": "1.0",
+  "toolVersion": "0.1.0",
+  "inputs": {
+    "before": {
+      "name": "HelloWorld.x3d",
+      "byteLength": 519,
+      "components": [],
+      "parsedNodeCount": 11,
+      "x3dVersion": "3.3",
+      "profile": "Interchange"
+    },
+    "after": {
+      "name": "HelloWorld-edited.x3d",
+      "byteLength": 530,
+      "components": [],
+      "parsedNodeCount": 11,
+      "x3dVersion": "3.3",
+      "profile": "Interchange"
+    }
+  },
+  "config": {
+    "floatAbs": 0.000001,
+    "floatRel": 0.000001,
+    "vectorAbs": 0.00001,
+    "rotationRadians": 0.00001,
+    "colorAbs": 0.0001,
+    "enabledCategories": [
+      "all"
+    ]
+  },
+  "summary": {
+    "status": "complete",
+    "countsByKind": {
+      "geometryChanged": 1,
+      "materialChanged": 2,
+      "nodeRemoved": 1,
+      "nodeAdded": 1,
+      "transformChanged": 2
+    },
+    "countsBySeverity": {
+      "critical": 0,
+      "high": 7,
+      "medium": 0,
+      "low": 0,
+      "info": 0
+    },
+    "unsupportedCount": 0
+  },
+  "changes": [
+    {
+      "id": "c00001",
+      "kind": "geometryChanged",
+      "category": "geometry",
+      "severity": "high",
+      "confidence": "high",
+      "message": "Sphere.radius changed",
+      "before": {
+        "fieldType": "SFFloat",
+        "value": 0.8,
+        "lexicalValue": "0.8"
+      },
+      "after": {
+        "fieldType": "SFFloat",
+        "value": 1,
+        "lexicalValue": "1"
+      },
+      "beforePath": "/X3D/Scene/Transform[1]/Shape[1]/Sphere[1]",
+      "afterPath": "/X3D/Scene/Transform[1]/Shape[1]/Sphere[1]",
+      "beforeNode": {
+        "nodeType": "Sphere",
+        "scopePath": "/",
+        "path": "/X3D/Scene/Transform[1]/Shape[1]/Sphere[1]",
+        "source": {
+          "elementPath": "/X3D/Scene/Transform[1]/Shape[1]/Sphere[1]"
+        }
+      },
+      "afterNode": {
+        "nodeType": "Sphere",
+        "scopePath": "/",
+        "path": "/X3D/Scene/Transform[1]/Shape[1]/Sphere[1]",
+        "source": {
+          "elementPath": "/X3D/Scene/Transform[1]/Shape[1]/Sphere[1]"
+        }
+      },
+      "field": "radius"
+    },
+    {
+      "id": "c00002",
+      "kind": "materialChanged",
+      "category": "material",
+      "severity": "high",
+      "confidence": "high",
+      "message": "Material.diffuseColor changed",
+      "before": {
+        "fieldType": "SFColor",
+        "value": [
+          0.18,
+          0.48,
+          0.88
+        ],
+        "lexicalValue": "0.18 0.48 0.88"
+      },
+      "after": {
+        "fieldType": "SFColor",
+        "value": [
+          0.78,
+          0.2,
+          0.28
+        ],
+        "lexicalValue": "0.78 0.2 0.28"
+      },
+      "beforePath": "/X3D/Scene/Transform[1]/Shape[1]/Appearance[1]/Material[1]",
+      "afterPath": "/X3D/Scene/Transform[1]/Shape[1]/Appearance[1]/Material[1]",
+      "beforeNode": {
+        "nodeType": "Material",
+        "scopePath": "/",
+        "path": "/X3D/Scene/Transform[1]/Shape[1]/Appearance[1]/Material[1]",
+        "source": {
+          "elementPath": "/X3D/Scene/Transform[1]/Shape[1]/Appearance[1]/Material[1]"
+        }
+      },
+      "afterNode": {
+        "nodeType": "Material",
+        "scopePath": "/",
+        "path": "/X3D/Scene/Transform[1]/Shape[1]/Appearance[1]/Material[1]",
+        "source": {
+          "elementPath": "/X3D/Scene/Transform[1]/Shape[1]/Appearance[1]/Material[1]"
+        }
+      },
+      "field": "diffuseColor"
+    },
+    {
+      "id": "c00003",
+      "kind": "materialChanged",
+      "category": "material",
+      "severity": "high",
+      "confidence": "high",
+      "message": "Material.diffuseColor changed",
+      "before": {
+        "fieldType": "SFColor",
+        "value": [
+          0.95,
+          0.62,
+          0.2
+        ],
+        "lexicalValue": "0.95 0.62 0.2"
+      },
+      "after": {
+        "fieldType": "SFColor",
+        "value": [
+          0.3,
+          0.85,
+          0.45
+        ],
+        "lexicalValue": "0.30 0.85 0.45"
+      },
+      "beforePath": "/X3D/Scene/Transform[2]/Shape[1]/Appearance[1]/Material[1]",
+      "afterPath": "/X3D/Scene/Transform[2]/Shape[1]/Appearance[1]/Material[1]",
+      "beforeNode": {
+        "nodeType": "Material",
+        "scopePath": "/",
+        "path": "/X3D/Scene/Transform[2]/Shape[1]/Appearance[1]/Material[1]",
+        "source": {
+          "elementPath": "/X3D/Scene/Transform[2]/Shape[1]/Appearance[1]/Material[1]"
+        }
+      },
+      "afterNode": {
+        "nodeType": "Material",
+        "scopePath": "/",
+        "path": "/X3D/Scene/Transform[2]/Shape[1]/Appearance[1]/Material[1]",
+        "source": {
+          "elementPath": "/X3D/Scene/Transform[2]/Shape[1]/Appearance[1]/Material[1]"
+        }
+      },
+      "field": "diffuseColor"
+    },
+    {
+      "id": "c00004",
+      "kind": "nodeRemoved",
+      "severity": "high",
+      "confidence": "high",
+      "category": "structure",
+      "message": "Box removed",
+      "beforePath": "/X3D/Scene/Transform[2]/Shape[1]/Box[1]",
+      "beforeNode": {
+        "nodeType": "Box",
+        "scopePath": "/",
+        "path": "/X3D/Scene/Transform[2]/Shape[1]/Box[1]",
+        "source": {
+          "elementPath": "/X3D/Scene/Transform[2]/Shape[1]/Box[1]"
+        }
+      }
+    },
+    {
+      "id": "c00005",
+      "kind": "nodeAdded",
+      "severity": "high",
+      "confidence": "high",
+      "category": "structure",
+      "message": "Cylinder added",
+      "afterPath": "/X3D/Scene/Transform[2]/Shape[1]/Cylinder[1]",
+      "afterNode": {
+        "nodeType": "Cylinder",
+        "scopePath": "/",
+        "path": "/X3D/Scene/Transform[2]/Shape[1]/Cylinder[1]",
+        "source": {
+          "elementPath": "/X3D/Scene/Transform[2]/Shape[1]/Cylinder[1]"
+        }
+      }
+    },
+    {
+      "id": "c00006",
+      "kind": "transformChanged",
+      "category": "transform",
+      "severity": "high",
+      "confidence": "high",
+      "message": "Transform.translation changed",
+      "before": {
+        "fieldType": "SFVec3f",
+        "value": [
+          -0.7,
+          0,
+          0
+        ],
+        "lexicalValue": "-0.7 0 0"
+      },
+      "after": {
+        "fieldType": "SFVec3f",
+        "value": [
+          0,
+          0.2,
+          0
+        ],
+        "lexicalValue": "0 0.2 0"
+      },
+      "beforePath": "/X3D/Scene/Transform[1]",
+      "afterPath": "/X3D/Scene/Transform[1]",
+      "beforeNode": {
+        "nodeType": "Transform",
+        "defName": "DemoObject",
+        "scopePath": "/",
+        "path": "/X3D/Scene/Transform[1]",
+        "source": {
+          "elementPath": "/X3D/Scene/Transform[1]"
+        }
+      },
+      "afterNode": {
+        "nodeType": "Transform",
+        "defName": "DemoObject",
+        "scopePath": "/",
+        "path": "/X3D/Scene/Transform[1]",
+        "source": {
+          "elementPath": "/X3D/Scene/Transform[1]"
+        }
+      },
+      "field": "translation"
+    },
+    {
+      "id": "c00007",
+      "kind": "transformChanged",
+      "category": "transform",
+      "severity": "high",
+      "confidence": "high",
+      "message": "Transform.translation changed",
+      "before": {
+        "fieldType": "SFVec3f",
+        "value": [
+          0.8,
+          0,
+          0
+        ],
+        "lexicalValue": "0.8 0 0"
+      },
+      "after": {
+        "fieldType": "SFVec3f",
+        "value": [
+          1.8,
+          0,
+          0
+        ],
+        "lexicalValue": "1.8 0 0"
+      },
+      "beforePath": "/X3D/Scene/Transform[2]",
+      "afterPath": "/X3D/Scene/Transform[2]",
+      "beforeNode": {
+        "nodeType": "Transform",
+        "scopePath": "/",
+        "path": "/X3D/Scene/Transform[2]",
+        "source": {
+          "elementPath": "/X3D/Scene/Transform[2]"
+        }
+      },
+      "afterNode": {
+        "nodeType": "Transform",
+        "scopePath": "/",
+        "path": "/X3D/Scene/Transform[2]",
+        "source": {
+          "elementPath": "/X3D/Scene/Transform[2]"
+        }
+      },
+      "field": "translation"
+    }
+  ],
+  "diagnostics": [],
+  "catalog": {
+    "version": "3.3",
+    "modelSha256": "6d9561c4398512e9a891e1221667b6a11994c20979aa4bbcabc21cbf056c0eae",
+    "schemaSha256": "a687b059a480a599b4bba0ca78c20ed17202ffe06450c24379833e3a26fe875b",
+    "supportedNodes": [
+      "Anchor",
+      "Appearance",
+      "Background",
+      "BooleanFilter",
+      "BooleanTrigger",
+      "Box",
+      "ColorInterpolator",
+      "Coordinate",
+      "Cylinder",
+      "FontStyle",
+      "Group",
+      "ImageTexture",
+      "IndexedFaceSet",
+      "Inline",
+      "IntegerTrigger",
+      "Material",
+      "MetadataBoolean",
+      "MetadataDouble",
+      "MetadataFloat",
+      "MetadataInteger",
+      "MetadataSet",
+      "MetadataString",
+      "OrientationInterpolator",
+      "ScalarInterpolator",
+      "Shape",
+      "Sphere",
+      "Switch",
+      "Text",
+      "TimeSensor",
+      "TimeTrigger",
+      "TouchSensor",
+      "Transform",
+      "Viewpoint",
+      "WorldInfo"
+    ],
+    "supportedFieldTypes": [
+      "MFColor",
+      "MFColorRGBA",
+      "MFDouble",
+      "MFFloat",
+      "MFInt32",
+      "MFNode",
+      "MFRotation",
+      "MFString",
+      "MFTime",
+      "MFVec2d",
+      "MFVec2f",
+      "MFVec3d",
+      "MFVec3f",
+      "SFBool",
+      "SFColor",
+      "SFColorRGBA",
+      "SFDouble",
+      "SFFloat",
+      "SFInt32",
+      "SFNode",
+      "SFRotation",
+      "SFString",
+      "SFTime",
+      "SFVec2d",
+      "SFVec2f",
+      "SFVec3d",
+      "SFVec3f",
+      "SFVec4f"
+    ]
+  }
+}

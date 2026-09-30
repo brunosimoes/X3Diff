@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE X3D PUBLIC "ISO//Web3D//DTD X3D 4.0//EN" "https://www.web3d.org/specifications/x3d-4.0.dtd">
+<X3D profile='Immersive' version='4.0' xmlns:xsd='http://www.w3.org/2001/XMLSchema-instance' xsd:noNamespaceSchemaLocation='https://www.web3d.org/specifications/x3d-4.0.xsd'>
+  <head>
+    <meta content='MetadataNodeExamplesX3D4.x3d' name='title'/>
+    <meta content='Simple examples of meta statements, comments, WorldInfo node and typed metadata nodes.' name='description'/>
+    <meta content='Don Brutzman' name='creator'/>
+    <meta content='30 September 2011' name='created'/>
+    <meta content='15 July 2026' name='modified'/>
+    <meta content='Original name MetadataNodeExamples.x3d, split and renamed since handling of metadata containerField defaults changed in X3D4.' name='reference'/>
+    <meta content='MetadataNodeExamplesX3D3.x3d' name='reference'/>
+    <meta content='X3D 4.0 Architecture, ISO/IEC 19775-1:2023, 4 Concepts, 4.3.2 Root nodes' name='specificationSection'/>
+    <meta content='https://www.web3d.org/specifications/X3Dv4/ISO-IEC19775-1v4-IS/Part01/concepts.html#Rootnodes' name='specificationUrl'/>
+    <meta content='Information in head and meta elements is retained after a scene is parsed and loaded, and can be referenced via the Scene Access Interface (SAI) or Document Object Model (DOM)' name='info'/>
+    <meta content='Authoring note: MetadataBoolean requires X3D version 4.0, as used in this example scene' name='info'/>
+    <meta content='The following referenced chapter is published online but was not included in the printed book.' name='reference'/>
+    <meta content='Chapter15MetadataInformation.html' name='reference'/>
+    <meta content='https://x3dgraphics.com/chapters/Chapter15MetadataInformation.html' name='reference'/>
+    <meta content='https://X3dGraphics.com' name='reference'/>
+    <meta content='https://www.web3d.org/x3d/content/examples/X3dResources.html' name='reference'/>
+    <meta content='Copyright 2006, Daly Realism and Don Brutzman' name='rights'/>
+    <meta content='X3D book, X3D graphics, X3D-Edit, http://www.x3dGraphics.com' name='subject'/>
+    <meta content='https://www.web3d.org/x3d/content/examples/X3dForWebAuthors/Chapter15Metadata/MetadataNodeExamplesX3D4.x3d' name='identifier'/>
+    <meta content='X3D-Edit 4.0, https://www.web3d.org/x3d/tools/X3D-Edit' name='generator'/>
+    <meta content='../license.html' name='license'/>
+  </head>
+  <Scene>
+    <!-- May 2017: X3D4 Architecture Specification clarification allows Metadata nodes at top level of Scene graph. -->
+    <MetadataString name='TestRootMetadataNode' value='"Check whether scene root Metadata* node is satisfactory." "Note that all SFString values must be quoted."'/>
+    <!-- Comments can appear between nodes (XML elements) but are not retained after a scene is parsed, loaded and playing -->
+    <WorldInfo DEF='MyWorldInfo' info='"Metadata strings" "can go here" "as string array values"' title='MetadataNodeExamplesX3D4.x3d Example Scene'>
+      <!-- Structured information can go in Metadata nodes. Note that any X3D node can contain a single Metadata node with containerField='metadata' -->
+      <MetadataSet DEF='MyMetadataSetNode' containerField='metadata' name='Metadata_name' reference='SomeReferenceStandard 1.2.3c'>
+        <MetadataSet DEF='NestedMetadataSetNode' containerField='metadata' name='TestNestedMetadataSetNodes'>
+          <!-- MetadataSet can also contain multiple Metadata nodes with default containerField='value' including USE nodes -->
+          <MetadataString USE='MyMetadataStringNode'/>
+          <MetadataInteger USE='MyMetadataIntegerNode'/>
+          <MetadataFloat USE='MyMetadataFloatNode'/>
+          <MetadataFloat name='coefficients' value='3.141592653 2.7128 1 0'/>
+        </MetadataSet>
+        <MetadataBoolean DEF='MyMetadataBooleanNode' name='Coin Flip' reference='MetadataBoolean supported in X3D v3.3 and later' value='true false true false'/>
+        <MetadataDouble DEF='MyMetadataDoubleNode' name='Metadata_name' reference='SomeReferenceStandard 1.2.3c' value='3.141592658 2.71812181'/>
+        <MetadataFloat DEF='MyMetadataFloatNode' name='Metadata_name' reference='SomeReferenceStandard 1.2.3c' value='9.8 6.023e+23'/>
+        <MetadataInteger DEF='MyMetadataIntegerNode' name='Metadata_name' reference='SomeReferenceStandard 1.2.3c' value='6 28 496'/>
+        <MetadataString DEF='MyMetadataStringNode' name='Metadata_name' reference='SomeReferenceStandard 1.2.3c' value='"Part 27" "P27" "p27"'/>
+      </MetadataSet>
+    </WorldInfo>
+    <Background skyColor='0 0.439216 0.760784'/>
+    <Viewpoint description='View scene source to see metadata examples' position='0 0 9'/>
+    <Anchor description='Load scene index page' parameter='"target=_blank"' url='"MetadataNodeExamplesIndex.html" "https://www.web3d.org/x3d/content/examples/X3dForWebAuthors/Chapter15Metadata/MetadataNodeExamplesIndex.html"'>
+      <Shape>
+        <Text string='"View scene source" "to see" "metadata examples"'>
+          <FontStyle justify='"MIDDLE" "MIDDLE"'/>
+        </Text>
+        <Appearance>
+          <Material diffuseColor='1 0.992157 0.039216'/>
+        </Appearance>
+      </Shape>
+    </Anchor>
+  </Scene>
+</X3D>

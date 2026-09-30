@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<X3D profile="Immersive" version="3.3">
+  <Scene>
+    <Shape>
+      <Appearance>
+        <ImageTexture url='"http://127.0.0.1:5175/content-probe-texture"'/>
+      </Appearance>
+      <Box/>
+    </Shape>
+    <Inline url='"http://127.0.0.1:5175/content-probe-inline"'/>
+  </Scene>
+</X3D>

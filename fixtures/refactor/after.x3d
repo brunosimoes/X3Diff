@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE X3D PUBLIC "ISO//Web3D//DTD X3D 3.3//EN" "https://www.web3d.org/specifications/x3d-3.3.dtd">
+<X3D profile='Immersive' version='3.3' xmlns:xsd='http://www.w3.org/2001/XMLSchema-instance' xsd:noNamespaceSchemaLocation='https://www.web3d.org/specifications/x3d-3.3.xsd'>
+  <head>
+    <meta content='TimeSensorChaining.x3d' name='title'/>
+    <meta content='Connecting TimeSensor nodes so that the completion of one behavior chain triggers another.' name='description'/>
+    <meta content='Don Brutzman and MV3204 class' name='creator'/>
+    <meta content='2 September 2009' name='created'/>
+    <meta content='27 August 2023' name='modified'/>
+    <meta content='under development' name='warning'/>
+    <meta content='https://www.web3d.org/x3d/content/examples/X3dForWebAuthors/Chapter07EventAnimationInterpolation/TimeSensorChaining.x3d' name='identifier'/>
+    <meta content='X3D-Edit 4.0, https://savage.nps.edu/X3D-Edit' name='generator'/>
+    <meta content='../license.html' name='license'/>
+  </head>
+  <Scene>
+    <WorldInfo title='TimeSensorChaining.x3d'/>
+    <Viewpoint description='TimeSensor chaining example' position='0 1 6'/>
+    <Transform DEF='DoorHingeTransform' center='-0.65 0 0' translation='0 1 0'>
+      <TouchSensor DEF='UserSelectDoor' description='click to operate door'/>
+      <Shape>
+        <Box size='1.3 2.5 0.08'/>
+        <Appearance>
+          <Material DEF='DoorColor' diffuseColor='1 0 0'/>
+        </Appearance>
+      </Shape>
+    </Transform>
+    <Transform scale='0.6 0.6 0.6' translation='0 -1 0'>
+      <Switch DEF='TextSwitcher' whichChoice='0'>
+        <Group>
+          <Shape>
+            <Text string='"Door is closed"'>
+              <FontStyle DEF='MiddleJustify' justify='"MIDDLE" "MIDDLE"'/>
+            </Text>
+            <Appearance DEF='TextAppearance'>
+              <Material/>
+            </Appearance>
+          </Shape>
+        </Group>
+        <Group>
+          <Shape>
+            <Text string='"Door in motion..."'>
+              <FontStyle USE='MiddleJustify'/>
+            </Text>
+            <Appearance USE='TextAppearance'/>
+          </Shape>
+        </Group>
+        <Group>
+          <Shape>
+            <Text string='"Door is open"'>
+              <FontStyle USE='MiddleJustify'/>
+            </Text>
+            <Appearance USE='TextAppearance'/>
+          </Shape>
+        </Group>
+      </Switch>
+    </Transform>
+    <!-- ===== open the door ===== -->
+    <TimeSensor DEF='Clock1' cycleInterval='2'/>
+    <ROUTE fromField='touchTime' fromNode='UserSelectDoor' toField='startTime' toNode='Clock1'/>
+    <OrientationInterpolator DEF='DoorOpener' key='0 0.5 1' keyValue='0 1 0 0 0 1 0 4.7124 0 1 0 3'/>
+    <ROUTE fromField='fraction_changed' fromNode='Clock1' toField='set_fraction' toNode='DoorOpener'/>
+    <ROUTE fromField='value_changed' fromNode='DoorOpener' toField='rotation' toNode='DoorHingeTransform'/>
+    <IntegerTrigger DEF='SetTextInMotion' integerKey='1'/>
+    <ROUTE fromField='isActive' fromNode='UserSelectDoor' toField='set_boolean' toNode='SetTextInMotion'/>
+    <ROUTE fromField='triggerValue' fromNode='SetTextInMotion' toField='whichChoice' toNode='TextSwitcher'/>
+    <!-- ===== door is now open ===== -->
+    <BooleanFilter DEF='DoorOpenComplete'/>
+    <ROUTE fromField='isActive' fromNode='Clock1' toField='set_boolean' toNode='DoorOpenComplete'/>
+    <!-- disable Clock1 by turning itself off when complete -->
+    <ROUTE fromField='isActive' fromNode='Clock1' toField='enabled' toNode='Clock1'/>
+    <TimeTrigger DEF='TriggerOpeningAnimation'/>
+    <ROUTE fromField='inputFalse' fromNode='DoorOpenComplete' toField='set_boolean' toNode='TriggerOpeningAnimation'/>
+    <TimeSensor DEF='Clock2' cycleInterval='0.5'/>
+    <ROUTE fromField='triggerTime' fromNode='TriggerOpeningAnimation' toField='startTime' toNode='Clock2'/>
+    <IntegerTrigger DEF='SetTextOpen' integerKey='2'/>
+    <ROUTE fromField='inputFalse' fromNode='DoorOpenComplete' toField='set_boolean' toNode='SetTextOpen'/>
+    <ROUTE fromField='triggerValue' fromNode='SetTextOpen' toField='whichChoice' toNode='TextSwitcher'/>
+    <ColorInterpolator DEF='DoorColorInterpolator' key='0 0.5 1' keyValue='1 0 0 0.1 0.1 0.1 0.203922 0.701961 0'/>
+    <ROUTE fromField='fraction_changed' fromNode='Clock2' toField='set_fraction' toNode='DoorColorInterpolator'/>
+    <ROUTE fromField='value_changed' fromNode='DoorColorInterpolator' toField='diffuseColor' toNode='DoorColor'/>
+    <!-- ===== close the door ===== -->
+    <TimeSensor DEF='Clock3' cycleInterval='2' enabled='false'/>
+    <ROUTE fromField='touchTime' fromNode='UserSelectDoor' toField='startTime' toNode='Clock3'/>
+    <!-- enable Clock3 once door is fully open -->
+    <ROUTE fromField='inputFalse' fromNode='DoorOpenComplete' toField='enabled' toNode='Clock3'/>
+    <!-- disable Clock3 by turning itself off when complete -->
+    <ROUTE fromField='isActive' fromNode='Clock3' toField='enabled' toNode='Clock3'/>
+    <ScalarInterpolator DEF='ClockReversal' key='0 1' keyValue='1 0'/>
+    <ROUTE fromField='fraction_changed' fromNode='Clock3' toField='set_fraction' toNode='ClockReversal'/>
+    <ROUTE fromField='value_changed' fromNode='ClockReversal' toField='set_fraction' toNode='DoorOpener'/>
+    <ROUTE fromField='value_changed' fromNode='ClockReversal' toField='set_fraction' toNode='DoorColorInterpolator'/>
+    <!-- enable Clock1 when door is fully closed -->
+    <BooleanTrigger DEF='Clock3CompleteTrigger'/>
+    <ROUTE fromField='stopTime' fromNode='Clock3' toField='set_triggerTime' toNode='Clock3CompleteTrigger'/>
+    <IntegerTrigger DEF='SetTextClosed' integerKey='0'/>
+    <ROUTE fromField='triggerTrue' fromNode='Clock3CompleteTrigger' toField='set_boolean' toNode='SetTextClosed'/>
+    <ROUTE fromField='triggerValue' fromNode='SetTextClosed' toField='whichChoice' toNode='TextSwitcher'/>
+  </Scene>
+</X3D>

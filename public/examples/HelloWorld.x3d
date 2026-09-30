@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<X3D profile="Interchange" version="3.3"><Scene>
+  <WorldInfo title="X3Diff safe preview example"/>
+  <Transform DEF="DemoObject" translation="-0.7 0 0">
+    <Shape DEF="DemoShape">
+      <Appearance><Material diffuseColor="0.18 0.48 0.88"/></Appearance>
+      <Sphere radius="0.8"/>
+    </Shape>
+  </Transform>
+  <Transform translation="0.8 0 0"><Shape><Appearance><Material diffuseColor="0.95 0.62 0.2"/></Appearance><Box size="0.7 0.7 0.7"/></Shape></Transform>
+</Scene></X3D>

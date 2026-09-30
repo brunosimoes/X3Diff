@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="X3Diff turns X3D revisions into inspectable evidence. Compare scenes locally, explore geometric changes, and make informed decisions before accepting AI-assisted edits."
+    />
+    <meta name="theme-color" content="#0c1821" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; style-src 'self'; script-src 'self'"
+    />
+    <title>X3Diff — Understand the change. Decide with evidence.</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/site/site.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="X3Diff home"
+        ><img src="/favicon.svg" width="32" height="32" alt="" />X3<span>Diff</span></a
+      >
+      <nav aria-label="Main navigation">
+        <a href="#approach">How it works</a><a href="#abstract">Abstract</a
+        ><a href="https://github.com/brunosimoes/X3Diff">GitHub ↗</a
+        ><a class="button small" href="./app.html">Open app <span aria-hidden="true">↗</span></a>
+      </nav>
+    </header>
+    <main id="main">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow"><span></span> OPEN SOURCE · X3D REVISION REVIEW</p>
+          <h1>Understand the change.<br /><em>Decide with evidence.</em></h1>
+          <p class="lead">
+            AI can accelerate scene creation. Reviewing what changed still needs a clear view.
+            X3Diff connects semantic differences with interactive 3D analysis, so you can inspect
+            revisions before accepting them.
+          </p>
+          <div class="actions">
+            <a class="button" href="./app.html?example=example"
+              >Try a comparison <span aria-hidden="true">↗</span></a
+            ><a class="text-link" href="#abstract">Read the project abstract ↓</a>
+          </div>
+          <p class="privacy">
+            No account. No model upload. Your files are processed in your browser.
+          </p>
+        </div>
+        <div
+          class="hero-figure"
+          role="img"
+          aria-label="Illustration of two overlapping revisions: before in pink, after in cyan, with shared space between them."
+        >
+          <div class="figure-top">
+            <span>REVISION / OVERLAY</span><span class="live-dot">Inspect together</span>
+          </div>
+          <div class="model-grid">
+            <div class="orb before"></div>
+            <div class="orb after"></div>
+            <span class="axis axis-x">X</span><span class="axis axis-y">Y</span>
+            <div class="annotation annotation-a">01 / Before</div>
+            <div class="annotation annotation-b">02 / After</div>
+          </div>
+          <div class="figure-bottom">
+            <span><i class="pink"></i>Before</span><span><i class="cyan"></i>After</span
+            ><span>Illustrative comparison</span>
+          </div>
+        </div>
+      </section>
+      <section class="web3d-context" aria-labelledby="web3d-title">
+        <div>
+          <p class="eyebrow">OPEN STANDARDS. CONNECTED 3D.</p>
+          <h2 id="web3d-title">A shared language for<br />3D on the web.</h2>
+        </div>
+        <div>
+          <p>
+            <strong>X3D brings interactive scenes to the open web.</strong> Developed by the Web3D
+            Consortium, it is an open, royalty-free ISO standard for representing and sharing 3D
+            content—from geometry and appearance to animation and interaction.
+          </p>
+          <p>
+            X3Diff builds on that structured foundation: making scene revisions easier to inspect,
+            discuss, and trust as Web3D experiences evolve.
+          </p>
+          <div class="web3d-links">
+            <a class="text-link" href="https://www.web3d.org/x3d/what-x3d">Discover X3D ↗</a
+            ><a class="text-link" href="https://www.web3d.org/">Explore the Web3D Consortium ↗</a>
+          </div>
+        </div>
+      </section>
+      <section id="approach" class="section">
+        <div class="section-title">
+          <p class="eyebrow">A PRACTICAL REVIEW LOOP</p>
+          <h2>From “something changed”<br />to “I understand the impact.”</h2>
+          <p>
+            Use the view that answers your question. Keep the original revisions close and make a
+            decision with the evidence in front of you.
+          </p>
+        </div>
+        <div class="steps">
+          <article>
+            <span class="number">01</span>
+            <h3>Compare the revisions</h3>
+            <p>
+              Load Before and After. A deterministic comparison identifies supported changes to
+              geometry, transforms, materials, references, and animation declarations.
+            </p>
+          </article>
+          <article>
+            <span class="number">02</span>
+            <h3>Inspect the impact</h3>
+            <p>
+              Connect a difference to its 3D object. Slice and measure, inspect sampled surface
+              deviation, or explore before-only, shared, and after-only volume.
+            </p>
+          </article>
+          <article>
+            <span class="number">03</span>
+            <h3>Make the call</h3>
+            <p>
+              Use the report and diagnostics to decide whether to accept, revise, or investigate.
+              Export the semantic JSON as evidence for your review process.
+            </p>
+          </article>
+        </div>
+      </section>
+      <section class="examples section" id="try">
+        <div class="section-title">
+          <p class="eyebrow">TRY IT WITH REAL SCENES</p>
+          <h2>Start with a question.</h2>
+          <p>Each example opens in the workbench with both revisions loaded.</p>
+        </div>
+        <div class="example-grid">
+          <a href="./app.html?example=example"
+            ><span class="example-index">01 / GET ORIENTED</span>
+            <h3>What was added or changed?</h3>
+            <p>Simple objects make the overlay and difference register easy to read.</p>
+            <span class="example-link">Open Objects ↗</span></a
+          ><a href="./app.html?example=dolphin"
+            ><span class="example-index">02 / INSPECT DEFORMATION</span>
+            <h3>Where did the surface move?</h3>
+            <p>Explore a dolphin mesh with linked slices and a surface deviation heatmap.</p>
+            <span class="example-link">Open Dolphin ↗</span></a
+          ><a href="./app.html?example=fitlab"
+            ><span class="example-index">03 / EXAMINE OVERLAP</span>
+            <h3>How does the geometry compare?</h3>
+            <p>Compare a shifted housing to see which regions are unchanged, removed, or added.</p>
+            <span class="example-link">Open Fit Lab ↗</span></a
+          >
+        </div>
+        <p class="more-examples">
+          Also in the app: Brickhaven and Forgeworks demonstrate native X3D animation in the
+          original revision views.
+        </p>
+      </section>
+      <article class="abstract section" id="abstract" aria-labelledby="abstract-title">
+        <aside>
+          <p class="eyebrow">PROJECT ABSTRACT</p>
+          <h2 id="abstract-title">Evidence for<br />human decisions.</h2>
+          <p>
+            X3Diff<br />A browser-based workbench for semantic and geometric review of X3D
+            revisions.
+          </p>
+          <a
+            class="text-link"
+            href="https://github.com/brunosimoes/X3Diff/blob/main/docs/ABSTRACT.md"
+            >Read on GitHub ↗</a
+          >
+          <p class="reading-time">6 MINUTE READ · PRINT FRIENDLY</p>
+        </aside>
+        <div class="abstract-body">
+          <h3>What problem does this tool solve?</h3>
+          <p>
+            AI-assisted tools make it easier to create and modify digital content, including the
+            scenes, scripts, and structured assets used in Web3D and metaverse applications. This
+            shifts a practical bottleneck from producing a change to understanding it. A
+            plausible-looking result is not enough to establish that an edit preserved the intended
+            structure, dimensions, appearance, or behavior. Reviewers need to know what changed,
+            where it changed, and which conclusions the available evidence supports.
+          </p>
+          <p>
+            For 3D scenes, neither a text diff nor a rendered image answers these questions alone. A
+            text diff exposes edited values but separates them from their spatial effect. A rendered
+            view makes the result visible but can conceal changes in references, defaults, or
+            animation declarations. Small geometric changes can be hard to locate, while a
+            conspicuous movement may come from a transform rather than a change in the underlying
+            mesh. The gap between these representations makes acceptance decisions slower and harder
+            to justify.
+          </p>
+          <p>
+            X3Diff addresses this gap with a local, interactive review workbench for two XML-encoded
+            X3D 3.3 revisions. Its purpose is to support better decisions and review gates in
+            workflows where edits may be authored by a person, generated by AI, or produced by
+            another tool. It does not need to know how an edit was created. The comparison itself is
+            deterministic and does not use an AI model.
+          </p>
+          <h3>How does it work?</h3>
+          <p>
+            The semantic layer parses a declared subset of X3D, resolves supported field defaults,
+            and compares typed values with explicit tolerances. It reports changes to supported
+            scene declarations, including geometry, transforms, materials, DEF/USE references, and
+            ROUTEs. Unsupported or ambiguous content produces diagnostics rather than a trusted
+            assertion that the scenes are equivalent. The result is a structured report that can be
+            inspected in the interface and exported as JSON.
+          </p>
+          <p>
+            The visual layer places revisions in a common scene context and links selections to
+            identifiable objects. Four analysis views provide complementary evidence. File
+            differences presents the semantic register. Slice &amp; measure intersects a supported
+            object pair with a shared plane and provides a straight-line ruler. Surface deviation
+            displays sampled nearest-surface distances in both directions. Volume differences
+            isolates before-only, shared, and after-only regions for one supported matched pair.
+          </p>
+          <p>
+            These views are designed around practical questions rather than a single universal
+            similarity score. A reviewer can locate an unexpected change, inspect a cross-section,
+            examine a high-deviation face, and return to the underlying declaration. The tab
+            registry makes views configurable and provides a small extension interface for
+            additional analyses. Settings and layout choices are remembered in the browser.
+          </p>
+          <h3>How does it support gating?</h3>
+          <p>
+            A review gate is a decision point before a proposed revision is accepted, merged, or
+            released. X3Diff supplies evidence for that decision: changed fields, spatial context,
+            measurements with stated limits, and diagnostics that indicate when further
+            investigation is necessary. For example, a reviewer can check whether an AI-assisted
+            edit changed only the intended material or also modified a transform, then inspect any
+            geometric effect before accepting the revision.
+          </p>
+          <p>
+            The acceptance criteria remain the responsibility of the project and its reviewer.
+            X3Diff does not currently implement approval records, policy rules, automated pass/fail
+            thresholds, or a CI merge gate. Its JSON report can serve as an input to a separately
+            implemented review process. A clean report over supported declarations is not a
+            certificate of complete X3D equivalence, physical validity, safety, or fitness for use.
+          </p>
+          <h3>What are its scope and contribution?</h3>
+          <p>
+            The tool runs as a static web application. User-selected models are read locally; no
+            model-upload service or account is required. A Web Worker performs semantic comparison,
+            while bounded geometry analysis and interactive renderers provide inspection views.
+            Native X3D animation is demonstrated in the original revision views; geometric analysis
+            examines authored static geometry rather than runtime motion.
+          </p>
+          <p>
+            Support is intentionally explicit. The semantic catalog covers 34 common X3D 3.3 nodes,
+            not the entire standard. Surface distances are sampled at triangle centres; they are not
+            exact continuous maxima. Volume calculations use tessellated primitives or a bounded
+            sampled mesh approximation. Measurements use scene coordinates without automatic
+            registration or unit conversion. Unsupported geometry and external scene content remain
+            outside the analysis boundary.
+          </p>
+          <p>
+            The contribution is a reproducible connection between semantic review and spatial
+            inspection: a reviewer can move from a reported change to geometric evidence while
+            retaining the limits of that evidence. Automated tests cover parsing, comparison, known
+            geometric cases, and browser interactions. Open source code, bundled examples, and
+            documented extension points make the approach inspectable and reusable. The aim is to
+            help people review increasingly rapid streams of changes with greater clarity and
+            accountability.
+          </p>
+        </div>
+      </article>
+      <section class="closing">
+        <div>
+          <p class="eyebrow">BRING TWO REVISIONS. ASK BETTER QUESTIONS.</p>
+          <h2>See what changed before you accept it.</h2>
+        </div>
+        <a class="button" href="./app.html">Open X3Diff ↗</a>
+      </section>
+    </main>
+    <footer>
+      <a class="brand" href="./">X3<span>Diff</span></a>
+      <p>Open-source scene review · MIT license</p>
+      <a href="https://github.com/brunosimoes/X3Diff">Source &amp; documentation ↗</a>
+    </footer>
+  </body>
+</html>
