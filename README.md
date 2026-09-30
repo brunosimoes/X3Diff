@@ -8,6 +8,8 @@ X3Diff is a browser-based workbench for comparing XML-encoded X3D 3.3 scenes. It
 
 ## Review a revision
 
+Watch the [three-minute Web3D 2026 demonstration](https://brunosimoes.github.io/X3Diff/#demo) for a narrated tour of the review workflow. The [video](public/media/x3diff-web3d-2026.mp4) and poster are bundled with the static site; playback starts only when requested.
+
 Load files through the icons inside **Before** and **After**, or choose an example. Comparison starts automatically when both inputs exist. Select a difference to highlight the corresponding object in the main overlay.
 
 | Analysis view      | Question it helps answer                                       |

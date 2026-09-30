@@ -528,6 +528,22 @@ footer p {
     transition: none;
   }
 }
+.video-section video {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  background: #0c1821;
+  border-radius: 16px;
+}
+.video-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 28px;
+  margin-top: 18px;
+  font-size: 14px;
+}
 @media print {
   @page {
     size: A4;
@@ -539,6 +555,7 @@ footer p {
   }
   .site-header,
   .hero,
+  .video-section,
   .web3d-context,
   #approach,
   #try,
