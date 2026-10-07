@@ -9,6 +9,7 @@ test('all examples render, volume works, and canvases survive repeated compariso
   page,
 }) => {
   await page.goto('/app.html');
+  await expect(page.locator('#global-status')).toHaveText('');
   await page.waitForFunction(() =>
     Array.from(document.querySelectorAll('x3d-canvas')).every((n) => (n as any).browser),
   );
@@ -16,11 +17,14 @@ test('all examples render, volume works, and canvases survive repeated compariso
     (window as any).originalCanvases = Array.from(document.querySelectorAll('x3d-canvas'));
   });
   for (const demo of ['example', 'brickhaven', 'forgeworks', 'fitlab', 'dolphin']) {
+    await page.locator(`[data-view="${demo === 'forgeworks' ? 'after' : 'before'}"]`).click();
     await page.locator('#demo-trigger').click();
     await page.locator('[data-demo="' + demo + '"]').click();
     await expect(page.locator('.review-workspace')).toBeVisible();
     await expect(page.locator('#global-status')).toHaveText('');
     await expect(page.locator('#global-status')).not.toHaveClass(/error/);
+    await expect(page.locator('[data-view="diff"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#viewer-diff')).toBeVisible();
     await expect(
       page.locator('.viewer-state').filter({ hasText: 'Preview unavailable' }),
     ).toHaveCount(0);
@@ -40,10 +44,12 @@ test('all examples render, volume works, and canvases survive repeated compariso
     }
   }
   for (let i = 0; i < 8; i++) {
+    await page.locator(`[data-view="${i % 2 ? 'before' : 'after'}"]`).click();
     await page.locator('#settings-trigger').click();
     await page.locator('#apply-settings').click();
     await expect(page.locator('.review-workspace')).toBeVisible();
     await expect(page.locator('#global-status')).toHaveText('');
+    await expect(page.locator('[data-view="diff"]')).toHaveAttribute('aria-pressed', 'true');
   }
   expect(
     await page.evaluate(() =>

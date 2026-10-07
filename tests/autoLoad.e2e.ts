@@ -8,21 +8,41 @@ const file = (name: string, size: number) => ({
   ),
 });
 
+for (const url of ['/app.html', '/app.html?example=unknown']) {
+  test(`Dolphin loads in Differences by default at ${url} and after reload`, async ({ page }) => {
+    await page.goto(url);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      await expect(page.locator('#global-status')).toHaveText('');
+      await expect(page.locator('#load-before')).toHaveAttribute('title', /Dolphin · neutral pose/);
+      await expect(page.locator('#load-after')).toHaveAttribute('title', /Dolphin · curved pose/);
+      await expect(page.locator('[data-view="diff"]')).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.locator('#viewer-diff x3d-canvas')).toBeVisible();
+      await expect(page.locator('#changes')).toContainText('387 moved');
+      if (attempt === 0) {
+        await page.locator('[data-view="after"]').click();
+        await page.reload();
+      }
+    }
+  });
+}
+
 test('revision icons open file pickers and automatically compare replacements', async ({
   page,
 }) => {
   await page.goto('/app.html');
   await expect(page.locator('.inputs')).toHaveCount(0);
-  await expect(page.locator('#load-before')).toHaveAttribute('data-state', 'missing');
-  await expect(page.locator('#load-after')).toHaveAttribute('data-state', 'missing');
+  await expect(page.locator('#global-status')).toHaveText('');
+  await expect(page.locator('#load-before')).toHaveAttribute('data-state', 'loaded');
+  await expect(page.locator('#load-after')).toHaveAttribute('data-state', 'loaded');
   await expect(page.getByRole('button', { name: 'Compare', exact: true })).toHaveCount(0);
   const beforeChooser = page.waitForEvent('filechooser');
   await page.locator('#load-before').click();
   await (await beforeChooser).setFiles(file('original.x3d', 2));
   await expect(page.locator('#load-before')).toHaveAttribute('data-state', 'loaded');
   await expect(page.locator('#load-before')).toHaveAttribute('title', /original.x3d/);
-  await expect(page.locator('[data-view="before"]')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('.analysis-panel')).toBeHidden();
+  await expect(page.locator('#global-status')).toHaveText('');
+  await expect(page.locator('[data-view="diff"]')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('[data-view="before"]').click();
   const afterChooser = page.waitForEvent('filechooser');
   await page.locator('#load-after').click();
   await (await afterChooser).setFiles(file('revision.x3d', 4));
@@ -30,11 +50,17 @@ test('revision icons open file pickers and automatically compare replacements', 
   await expect(page.locator('#load-after')).toHaveAttribute('data-state', 'loaded');
   await expect(page.locator('.analysis-panel')).toBeVisible();
   await expect(page.locator('#changes')).toContainText('4');
+  await expect(page.locator('[data-view="diff"]')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('[data-view="after"]').click();
   await page.locator('#after-file').setInputFiles(file('revision.x3d', 6));
   await expect(page.locator('#global-status')).toHaveText('');
   await expect(page.locator('#changes')).toContainText('6');
+  await expect(page.locator('[data-view="diff"]')).toHaveAttribute('aria-pressed', 'true');
   await page.locator('#after-file').setInputFiles(file('revision.x3d', 2));
   await expect(page.locator('#global-status')).toHaveText('No differences found.');
+  await expect(page.locator('[data-view="diff"]')).toBeVisible();
+  await expect(page.locator('[data-view="diff"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#viewer-diff x3d-canvas')).toBeVisible();
   await expect(page.locator('.analysis-panel')).toBeHidden();
   await expect(page.locator('#load-before')).toHaveAttribute('data-state', 'loaded');
   await page.setViewportSize({ width: 845, height: 698 });

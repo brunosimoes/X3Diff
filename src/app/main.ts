@@ -227,7 +227,7 @@ function showResult(hasDifferences: boolean) {
   el('.review-workspace').classList.toggle('no-diff', !hasDifferences);
   if (hasDifferences) analysisTabs.refresh();
   else analysisTabs.clear();
-  el<HTMLButtonElement>('button[data-view="diff"]').hidden = !hasDifferences;
+  el<HTMLButtonElement>('button[data-view="diff"]').hidden = false;
 
   el('#expand').hidden = !hasDifferences;
   if (!hasDifferences) {
@@ -475,7 +475,7 @@ async function readFile(file: File, side: 'before' | 'after') {
     if (side === 'before') before = input;
     else after = input;
     updateReady();
-    if (before && after) await runCompare({ view: 'diff' });
+    if (before && after) await runCompare();
     else {
       status(`Load the ${side === 'before' ? 'after' : 'before'} model to compare.`);
       setView(side);
@@ -638,7 +638,7 @@ el<HTMLSelectElement>('#category').addEventListener('change', () => {
     renderRegister(el('#changes'), report, el<HTMLSelectElement>('#category').value, selectChange);
   }
 });
-async function runCompare(defaults: { expanded?: boolean; view?: typeof view } = {}) {
+async function runCompare(defaults: { expanded?: boolean } = {}) {
   if (!(before && after)) return;
   const a = before,
     b = after;
@@ -647,7 +647,6 @@ async function runCompare(defaults: { expanded?: boolean; view?: typeof view } =
     preferences.expanded ??
     defaults.expanded ??
     el('.review-workspace').classList.contains('expanded');
-  const desiredView = defaults.view ?? view;
   invalidate();
   const current = revision;
   comparing = true;
@@ -680,10 +679,12 @@ async function runCompare(defaults: { expanded?: boolean; view?: typeof view } =
         if (current === revision && view === 'before' && selectedAnalysisPair)
           selectAnalysisPair(selectedAnalysisPair);
       });
-      await afterPane.load(b.text);
+      void afterPane.load(b.text);
+      visual = buildDiffScene(a.text, b.text, result);
+      await diffPane.load(visual.xml);
       if (current !== revision) return;
       showResult(false);
-      setView('after');
+      setView('diff');
       status('No differences found.');
       return;
     }
@@ -714,7 +715,7 @@ async function runCompare(defaults: { expanded?: boolean; view?: typeof view } =
     el('#scene-note').textContent = '';
     el('.review-workspace').classList.toggle('expanded', desiredExpanded);
     updateLayoutButton(desiredExpanded);
-    setView(desiredView);
+    setView('diff');
 
     if (current !== revision) return;
     status('');
@@ -852,10 +853,7 @@ async function loadDemo(demo: string) {
     beforePane.setAnimationEnabled(true);
     afterPane.setAnimationEnabled(true);
     updateMotionButton();
-    await runCompare({
-      expanded: showcase,
-      view: demo === 'fitlab' ? 'diff' : showcase ? 'after' : 'diff',
-    });
+    await runCompare({ expanded: showcase });
   } catch (error) {
     if (ticket === demoRevision)
       status(error instanceof Error ? error.message : 'Example could not be loaded.', true);
@@ -871,11 +869,10 @@ for (const side of ['before', 'after'] as const)
   );
 invalidate();
 updateReady();
-status('Load Before and After using their icons, or choose an example.');
-
 const initialExample = new URLSearchParams(location.search).get('example');
-if (
+void loadDemo(
   initialExample &&
-  ['example', 'dolphin', 'fitlab', 'brickhaven', 'forgeworks'].includes(initialExample)
-)
-  void loadDemo(initialExample);
+    ['example', 'dolphin', 'fitlab', 'brickhaven', 'forgeworks'].includes(initialExample)
+    ? initialExample
+    : 'dolphin',
+);

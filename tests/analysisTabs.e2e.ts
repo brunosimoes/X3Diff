@@ -21,7 +21,8 @@ test('tabs hide unavailable data and restore the preferred view when data return
   page,
 }) => {
   await page.goto('/app.html');
-  await expect(page.locator('.analysis-panel')).toBeHidden();
+  await expect(page.locator('#global-status')).toHaveText('');
+  await expect(page.locator('.analysis-panel')).toBeVisible();
   await compare(page);
   await expect(page.locator('#analysis-tab-differences')).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByRole('tab').nth(2)).toHaveText('Volume differences');
