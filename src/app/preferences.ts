@@ -1,5 +1,5 @@
 export interface ViewerPreferences {
-  region?: 'before' | 'shared' | 'after';
+  region?: 'all' | 'before' | 'shared' | 'after';
   expanded?: boolean;
   volumeResolution?: 'low' | 'medium' | 'high';
 }
@@ -11,7 +11,7 @@ export function readPreferences(): ViewerPreferences {
     const result: ViewerPreferences = {};
     if (['low', 'medium', 'high'].includes(saved.volumeResolution))
       result.volumeResolution = saved.volumeResolution;
-    if (['before', 'shared', 'after'].includes(saved.region)) result.region = saved.region;
+    if (['all', 'before', 'shared', 'after'].includes(saved.region)) result.region = saved.region;
     if (typeof saved.expanded === 'boolean') result.expanded = saved.expanded;
     return result;
   } catch {

@@ -12,6 +12,9 @@ import { X3DPane } from '../viewer/X3DPane';
 import { buildDiffScene, type DiffSceneResult } from '../viewer/diffScene';
 import { categoryNames, renderRegister } from './changeRegister';
 import { readPreferences, savePreferences } from './preferences';
+import { updateObjectChoice } from './objectChoice';
+import { renderVolumeSummary, volumeMethod } from './volumeSummary';
+import { affectsShape } from '../viewer/shapeGeometry';
 import './style.css';
 
 const icon = {
@@ -54,11 +57,19 @@ root.innerHTML = `
       <div class="register-heading"><div><h2>File differences <span id="change-count">—</span></h2></div><label class="category-control"><span class="sr-only">Category</span><select id="category" disabled><option value="all">All categories</option></select></label><span id="report-status" class="report-status"></span><button id="export" class="button quiet" disabled>Export ↗</button></div>
       <div id="summary" class="summary-metrics"></div>
       <div id="changes" class="register-content"><div class="empty-state"><p>Choose two files or load an example.</p></div></div>
-      <div id="selection" class="selection-note" aria-live="polite"></div>
+      <div class="selection-tools"><div id="selection" class="selection-note" aria-live="polite"></div><button id="focus-selection" class="button quiet" disabled>Focus selected</button></div>
       </section>
       <section id="linked-sections" hidden aria-label="Slice & measure"></section>
       <section id="surface-deviation" hidden></section>
-      <section id="volume-overlap" hidden><div class="volume-controls"><div id="region" class="segmented-control" role="group" aria-label="Volume regions"><button data-region="before">Before only</button><button data-region="shared">Shared</button><button data-region="after">After only</button></div><button id="volume-fit" class="button quiet">Fit</button></div><p id="volume-status" role="status"></p><div id="volume-viewer"></div></section>
+      <section id="volume-overlap" hidden>
+        <div class="volume-object-controls"><label>Object <select id="volume-object" aria-label="Volume object"></select></label><label>Resolution <select id="volume-detail" aria-label="Volume detail"><option value="low">Low · faster</option><option value="medium">Medium</option><option value="high">High · finer</option></select></label></div>
+        <div class="volume-controls"><div id="region" class="segmented-control" role="group" aria-label="Volume regions"><button data-region="all">Combined</button><button data-region="before">Before only</button><button data-region="shared">Shared</button><button data-region="after">After only</button></div><button id="volume-fit" class="button quiet">Fit</button></div>
+        <p id="volume-status" role="status"></p><p id="volume-selection-notice" role="status" hidden></p>
+        <div id="volume-summary" aria-label="Volume measurements" hidden></div>
+        <div class="volume-context-control"><label><input id="volume-context" type="checkbox" checked/> Show transparent object context</label><span>Volumes in scene units³</span></div>
+        <div class="volume-frame"><div id="volume-viewer"></div><p id="volume-empty" role="status" hidden></p></div>
+        <p id="volume-method" class="volume-note"></p><p class="volume-note">World coordinates · Static geometry · No automatic alignment. Before/after-only regions describe occupied space, not objects removed or added. Equal lost and gained volume can indicate relocation.</p>
+      </section>
     </aside>
   </section>
   <section class="comparison-notes"><div id="diagnostics" aria-live="polite"></div></section>
@@ -87,7 +98,7 @@ analysisTabs.register({
 analysisTabs.register({
   id: 'volume',
   label: 'Volume differences',
-  description: 'Inspect before-only, shared, and after-only volume for one matched pair.',
+  description: 'Measure changed space and inspect regions for a selected object pair.',
   panel: el('#volume-overlap'),
   available: () => linkedSections.hasData,
   activate: () => showVolume(),
@@ -143,15 +154,20 @@ let revision = 0,
 const preferences = readPreferences();
 const volumeResolution = el<HTMLSelectElement>('#volume-resolution');
 volumeResolution.value = preferences.volumeResolution ?? 'medium';
-volumeResolution.addEventListener('change', () => {
-  preferences.volumeResolution = volumeResolution.value as 'low' | 'medium' | 'high';
+const volumeDetail = el<HTMLSelectElement>('#volume-detail');
+volumeDetail.value = volumeResolution.value;
+function setVolumeResolution(value: string) {
+  volumeResolution.value = volumeDetail.value = value;
+  preferences.volumeResolution = value as 'low' | 'medium' | 'high';
   savePreferences(preferences);
   solid = undefined;
   if (!el('#volume-overlap').hidden) void showVolume();
-});
-let region = ['before', 'shared', 'after'].includes(preferences.region ?? '')
+}
+volumeResolution.addEventListener('change', () => setVolumeResolution(volumeResolution.value));
+volumeDetail.addEventListener('change', () => setVolumeResolution(volumeDetail.value));
+let region = ['all', 'before', 'shared', 'after'].includes(preferences.region ?? '')
   ? preferences.region!
-  : 'shared';
+  : 'all';
 const comparisons = new ComparisonClient();
 let comparing = false;
 let tolerance = { ...DEFAULT_TOLERANCE };
@@ -254,6 +270,7 @@ function clearSelection() {
   ))
     button.setAttribute('aria-pressed', 'false');
   el('#selection').textContent = '';
+  el<HTMLButtonElement>('#focus-selection').disabled = true;
 }
 function setView(next: typeof view) {
   const pair = selectedAnalysisPair;
@@ -272,6 +289,13 @@ function setView(next: typeof view) {
 for (const button of Array.from(root.querySelectorAll<HTMLButtonElement>('button[data-view]')))
   button.addEventListener('click', () => setView(button.dataset.view as typeof view));
 el('#fit').addEventListener('click', () => activePane().refreshView(true));
+el('#focus-selection').addEventListener('click', async () => {
+  const pane = activePane();
+  const focused = await pane.focusSelection().catch(() => false);
+  if (!focused)
+    el('#selection').textContent =
+      'The selection is highlighted, but has no supported static geometry to focus.';
+});
 function updateMotionButton() {
   el('#motion').setAttribute('aria-label', motion ? 'Pause animation' : 'Play animation');
   el('#motion').title = motion ? 'Pause animation' : 'Play animation';
@@ -302,52 +326,87 @@ el('#expand').addEventListener('click', () => {
   requestAnimationFrame(() => activePane().refreshView());
 });
 function updateAnalysisControls() {
-  for (const button of Array.from(root.querySelectorAll<HTMLButtonElement>('[data-region]')))
-    button.setAttribute('aria-pressed', String(button.dataset.region === region));
+  for (const button of Array.from(
+    root.querySelectorAll<HTMLButtonElement>('[data-region], [data-volume-region]'),
+  ))
+    button.setAttribute(
+      'aria-pressed',
+      String((button.dataset.region ?? button.dataset.volumeRegion) === region),
+    );
+}
+function setVolumeRegion(next: typeof region) {
+  region = next;
+  preferences.region = region;
+  savePreferences(preferences);
+  updateAnalysisControls();
+  updateVolumeView();
+}
+function updateVolumeView() {
+  volumePane.setRegions(region, el<HTMLInputElement>('#volume-context').checked);
+  const counts = solid?.triangleCounts;
+  const empty =
+    counts &&
+    (region === 'all'
+      ? Object.values(counts).every((count) => count === 0)
+      : counts[region === 'before' ? 'beforeOnly' : region === 'after' ? 'afterOnly' : 'shared'] ===
+        0);
+  el('#volume-empty').hidden = !empty;
+  el('#volume-empty').textContent = empty
+    ? `No ${region === 'all' ? 'occupied' : region === 'shared' ? 'shared' : region === 'before' ? 'before-only' : 'after-only'} volume at this resolution.`
+    : '';
 }
 for (const button of Array.from(root.querySelectorAll<HTMLButtonElement>('[data-region]')))
-  button.addEventListener('click', () => {
-    region = button.dataset.region as typeof region;
-    preferences.region = region;
-    savePreferences(preferences);
-    updateAnalysisControls();
-    volumePane.setRegions(region);
-  });
+  button.addEventListener('click', () => setVolumeRegion(button.dataset.region as typeof region));
+el('#volume-context').addEventListener('change', updateVolumeView);
+el('#volume-summary').addEventListener('click', (event) => {
+  const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-volume-region]');
+  if (button) setVolumeRegion(button.dataset.volumeRegion as typeof region);
+});
+el('#volume-object').addEventListener('change', () => {
+  const pair = linkedSections.getPairs()[Number(el<HTMLSelectElement>('#volume-object').value)];
+  if (pair) selectAnalysisPair(pair);
+});
 async function showVolume() {
   if (!(before && after && report && visual)) return;
+  const pairs = linkedSections.getPairs();
+  const pair =
+    selectedAnalysisPair ??
+    pairs[Number(el<HTMLSelectElement>('#volume-object').value)] ??
+    pairs[0];
+  if (!pair) return;
+  selectAnalysisPair(pair, false);
   const current = revision,
     request = ++volumeRevision;
   el('#volume-status').textContent = 'Preparing volume overlap…';
+  el('#volume-summary').hidden = true;
+  el('#volume-empty').hidden = true;
+  el('#volume-method').textContent = '';
   updateAnalysisControls();
   try {
     if (!solid) {
       const { buildSolidRegions } = await import('../viewer/solidRegions');
       if (current !== revision || request !== volumeRevision) return;
       solid =
-        buildSolidRegions(before.text, after.text, report, preferences.volumeResolution) ??
-        undefined;
+        buildSolidRegions(before.text, after.text, report, preferences.volumeResolution, {
+          before: pair.before.path,
+          after: pair.after.path,
+        }) ?? undefined;
     }
     if (!solid)
       throw new Error('No supported matched geometry pair is available for volume comparison.');
-    const pair = linkedSections
-      .getPairs()
-      .find(
-        (item) =>
-          item.before.path === solid!.pairPaths.before &&
-          item.after.path === solid!.pairPaths.after,
-      );
-    if (pair && !el('#volume-overlap').hidden) selectAnalysisPair(pair);
     const doc = new DOMParser().parseFromString(solid.xml, 'application/xml');
     const scene = doc.getElementsByTagName('Scene')[0];
     const volume = doc.querySelector('[DEF="X3DIFF_VOLUME_PAIR"]')!;
     scene.replaceChildren(volume);
-    for (const context of Array.from(scene.querySelectorAll('[DEF$="CONTEXT_VISIBILITY"]')))
-      context.remove();
     await volumePane.load(new XMLSerializer().serializeToString(doc));
     if (current !== revision || request !== volumeRevision) return;
-    volumePane.setRegions(region);
+    renderVolumeSummary(el('#volume-summary'), solid);
+    el('#volume-summary').hidden = false;
+    el('#volume-method').textContent = volumeMethod(solid);
+    updateAnalysisControls();
+    updateVolumeView();
     volumePane.refreshView(true);
-    el('#volume-status').textContent = solid.label;
+    el('#volume-status').textContent = pair.label;
   } catch (error) {
     if (current !== revision || request !== volumeRevision) return;
     volumePane.clear();
@@ -369,6 +428,12 @@ function invalidate() {
   report = undefined;
   visual = undefined;
   solid = undefined;
+  el('#volume-summary').hidden = true;
+  el('#volume-empty').hidden = true;
+  el('#volume-method').textContent = '';
+  el('#volume-selection-notice').hidden = true;
+  el('#volume-object').replaceChildren();
+  el<HTMLButtonElement>('#focus-selection').disabled = true;
 
   closeSettings();
   el('.review-workspace').hidden = false;
@@ -427,11 +492,18 @@ for (const side of ['before', 'after'] as const)
     (e.target as HTMLInputElement).value = '';
     if (file) void readFile(file, side);
   });
-function selectAnalysisPair(pair: AnalysisPair) {
+function selectAnalysisPair(pair: AnalysisPair, refreshVolume = true) {
+  const changedVolumePair =
+    solid?.pairPaths.before !== pair.before.path || solid?.pairPaths.after !== pair.after.path;
+  const previousPair = selectedAnalysisPair;
   clearSelection();
   selectedAnalysisPair = pair;
   linkedSections.selectPair(pair);
   surfaceAnalysis.selectPair(pair);
+  const index = linkedSections.getPairs().indexOf(pair);
+  if (index >= 0) el<HTMLSelectElement>('#volume-object').value = String(index);
+  if (refreshVolume) el('#volume-selection-notice').hidden = true;
+  if (changedVolumePair) solid = undefined;
   const target = view === 'before' ? pair.before : pair.after;
   const ok =
     view === 'diff'
@@ -442,6 +514,9 @@ function selectAnalysisPair(pair: AnalysisPair) {
       : activePane().cue(target.def, target.path);
   el('#selection').textContent =
     `${pair.label} · ${ok ? 'Highlighted in scene' : 'No visible object in this view'}`;
+  el<HTMLButtonElement>('#focus-selection').disabled = !ok;
+  if (refreshVolume && changedVolumePair && previousPair !== pair && !el('#volume-overlap').hidden)
+    void showVolume();
 }
 function selectChange(change: ChangeRecord, group?: ChangeRecord[], label?: string) {
   selectedAnalysisPair = undefined;
@@ -449,6 +524,29 @@ function selectChange(change: ChangeRecord, group?: ChangeRecord[], label?: stri
   const changes = group ?? [change];
   linkedSections.select(changes);
   surfaceAnalysis.select(changes);
+  const pairIndex = linkedSections
+    .getPairs()
+    .findIndex((pair) =>
+      changes.some(
+        (item) =>
+          affectsShape(pair.before.path, item.beforeNode?.path) ||
+          affectsShape(pair.after.path, item.afterNode?.path),
+      ),
+    );
+  if (pairIndex >= 0) {
+    selectedAnalysisPair = linkedSections.getPairs()[pairIndex];
+    el<HTMLSelectElement>('#volume-object').value = String(pairIndex);
+    if (
+      solid?.pairPaths.before !== selectedAnalysisPair.before.path ||
+      solid?.pairPaths.after !== selectedAnalysisPair.after.path
+    )
+      solid = undefined;
+    el('#volume-selection-notice').hidden = true;
+  } else {
+    el('#volume-selection-notice').textContent =
+      'This file difference has no supported volume pair. The object selected above remains displayed.';
+    el('#volume-selection-notice').hidden = false;
+  }
   const mapping = visual?.cueByChangeId;
   const ok =
     view === 'diff'
@@ -474,6 +572,7 @@ function selectChange(change: ChangeRecord, group?: ChangeRecord[], label?: stri
   const node = change.afterNode ?? change.beforeNode;
   el('#selection').textContent =
     `${label ?? node?.defName ?? node?.nodeType ?? 'Scene'} · ${ok ? 'Highlighted in scene' : 'No visible object in this view'}`;
+  el<HTMLButtonElement>('#focus-selection').disabled = !ok;
 }
 function renderReport(value: X3DiffReport) {
   report = value;
@@ -589,6 +688,15 @@ async function runCompare(defaults: { expanded?: boolean; view?: typeof view } =
       return;
     }
     linkedSections.load(a.text, b.text, result);
+    el('#volume-object').replaceChildren(
+      ...linkedSections.getPairs().map((pair, index) => {
+        const option = document.createElement('option');
+        option.value = String(index);
+        option.textContent = pair.label;
+        return option;
+      }),
+    );
+    updateObjectChoice(el<HTMLSelectElement>('#volume-object'));
     surfaceAnalysis.load(linkedSections.getPairs());
     visual = buildDiffScene(a.text, b.text, result);
     void beforePane.load(a.text).then(() => {
@@ -771,4 +879,3 @@ if (
   ['example', 'dolphin', 'fitlab', 'brickhaven', 'forgeworks'].includes(initialExample)
 )
   void loadDemo(initialExample);
-

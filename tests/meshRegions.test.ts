@@ -23,6 +23,30 @@ const matrix = new Matrix4()
   .multiply(new Matrix4().makeRotationY(1.57))
   .multiply(new Matrix4().makeScale(0.1, 0.1, 0.1));
 
+it('measures occupied cell volume against an analytic translated cube', () => {
+  const mesh = new DOMParser().parseFromString(
+    '<IndexedFaceSet coordIndex="0 3 2 1 -1 4 5 6 7 -1 0 4 7 3 -1 1 2 6 5 -1 0 1 5 4 -1 3 7 6 2 -1"><Coordinate point="-1 -1 -1 1 -1 -1 1 1 -1 -1 1 -1 -1 -1 1 1 -1 1 1 1 1 -1 1 1"/></IndexedFaceSet>',
+    'application/xml',
+  ).documentElement!;
+  const element = {
+    hasAttribute: (name: string) => mesh.hasAttribute(name),
+    getAttribute: (name: string) => mesh.getAttribute(name),
+    children: [mesh.getElementsByTagName('Coordinate')[0]],
+  } as unknown as Element;
+  const regions = buildMeshRegions(
+    element,
+    element,
+    new Matrix4(),
+    new Matrix4().makeTranslation(1, 0, 0),
+    'low',
+  );
+  try {
+    expect(regions.slice(0, 3).map((region) => region.userData.occupiedVolume)).toEqual([4, 4, 4]);
+  } finally {
+    regions.forEach((region) => region.dispose());
+  }
+});
+
 describe('open Dolphin volume preview', () => {
   it('produces nonempty exclusive and shared regions from both poses', () => {
     const regions = buildMeshRegions(geometry('before'), geometry('after'), matrix, matrix);
@@ -31,6 +55,13 @@ describe('open Dolphin volume preview', () => {
       expect(counts.every((count) => count > 0 && count <= 40_000)).toBe(true);
       expect(counts[1]).toBeGreaterThan(counts[0]);
       expect(counts[1]).toBeGreaterThan(counts[2]);
+      for (const region of regions.slice(0, 3)) {
+        expect(region.userData.occupiedVolume).toBeGreaterThan(0);
+        expect(region.userData.occupiedVolume / region.userData.voxelSize ** 3).toBeCloseTo(
+          Math.round(region.userData.occupiedVolume / region.userData.voxelSize ** 3),
+          5,
+        );
+      }
     } finally {
       for (const region of regions) region.dispose();
     }

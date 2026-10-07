@@ -2,6 +2,7 @@ import type { BufferGeometry } from 'three';
 import { Brush, Evaluator, INTERSECTION, REVERSE_SUBTRACTION, SUBTRACTION } from 'three-bvh-csg';
 import type { X3DiffReport } from '../report/schema';
 import { buildMeshRegions } from './meshRegions';
+import { enclosedVolume, type RegionVolumes } from './volumeMetrics';
 import {
   parsePrimitives,
   worldMatrix,
@@ -17,6 +18,9 @@ export interface SolidRegionsResult {
   pairPaths: { before: string; after: string };
   label: string;
   triangleCounts: { beforeOnly: number; shared: number; afterOnly: number };
+  volumes: RegionVolumes;
+  method: 'csg' | 'voxel';
+  cellSize?: number;
   approximate?: boolean;
   cueByChangeId: Record<string, string>;
 }
@@ -110,6 +114,7 @@ export function buildSolidRegions(
   afterXML: string,
   report: X3DiffReport,
   resolution: VolumeResolution = 'medium',
+  selected?: { before: string; after: string },
 ): SolidRegionsResult | null {
   if (report.summary.status !== 'complete' && report.summary.status !== 'completeWithWarnings')
     return null;
@@ -129,6 +134,7 @@ export function buildSolidRegions(
     .find(
       ({ b, a }) =>
         a &&
+        (!selected || (b.path === selected.before && a.path === selected.after)) &&
         report.changes.some(
           (c) =>
             c.confidence !== 'low' &&
@@ -230,8 +236,9 @@ export function buildSolidRegions(
           results[1],
           'X3DIFF_SHARED',
           0,
-          '1 0.72 0.12',
-          '0.32 0.16 0.02',
+          '0.45 0.55 0.62',
+          '0.04 0.05 0.06',
+          0.55,
         ),
         afterOnly: appendRegion(
           scene,
@@ -246,6 +253,13 @@ export function buildSolidRegions(
         ...compose(doc),
         label: pair.b.def ?? 'IndexedFaceSet',
         triangleCounts,
+        volumes: {
+          beforeOnly: results[0].userData.occupiedVolume,
+          shared: results[1].userData.occupiedVolume,
+          afterOnly: results[2].userData.occupiedVolume,
+        },
+        method: 'voxel',
+        cellSize: results[0].userData.voxelSize,
         approximate: true,
       };
     } finally {
@@ -281,7 +295,15 @@ export function buildSolidRegions(
         '1 0.08 0.46',
         '0.30 0.01 0.12',
       ),
-      shared: appendRegion(scene, shared, 'X3DIFF_SHARED', 0, '1 0.72 0.12', '0.32 0.16 0.02'),
+      shared: appendRegion(
+        scene,
+        shared,
+        'X3DIFF_SHARED',
+        0,
+        '0.45 0.55 0.62',
+        '0.04 0.05 0.06',
+        0.55,
+      ),
       afterOnly: appendRegion(
         scene,
         afterOnly,
@@ -291,7 +313,36 @@ export function buildSolidRegions(
         '0.01 0.17 0.30',
       ),
     };
-    return { ...compose(doc), label: pair.b.def ?? pair.b.geometry.localName, triangleCounts };
+    appendRegion(
+      scene,
+      brushBefore.geometry,
+      'X3DIFF_BEFORE_CONTEXT',
+      0,
+      '0.45 0.62 0.78',
+      '0.03 0.05 0.08',
+      0.88,
+    );
+    appendRegion(
+      scene,
+      brushAfter.geometry,
+      'X3DIFF_AFTER_CONTEXT',
+      0,
+      '0.45 0.62 0.78',
+      '0.03 0.05 0.08',
+      0.88,
+    );
+    return {
+      ...compose(doc),
+      label: pair.b.def ?? pair.b.geometry.localName,
+      triangleCounts,
+      volumes: {
+        beforeOnly: enclosedVolume(beforeOnly),
+        shared: enclosedVolume(shared),
+        afterOnly: enclosedVolume(afterOnly),
+      },
+      method: 'csg',
+      approximate: pair.b.geometry.localName !== 'Box' || pair.a.geometry.localName !== 'Box',
+    };
   } finally {
     brushBefore.geometry.dispose();
     brushAfter?.geometry.dispose();

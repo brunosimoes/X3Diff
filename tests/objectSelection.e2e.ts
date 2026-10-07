@@ -48,9 +48,13 @@ test('analysis object selectors highlight the matching scene object across views
   await expect(page.locator('#section-object')).toHaveValue('1');
   await expect.poll(() => highlighted(page, 'A_Second')).toBe(true);
   await page.locator('#analysis-tab-volume').click();
+  await expect(page.locator('#volume-status')).toHaveText('Second');
+  await expect(page.locator('#volume-object')).toHaveValue('1');
+  await expect.poll(() => highlighted(page, 'A_Second')).toBe(true);
+  await expect.poll(() => highlighted(page, 'B_Second')).toBe(true);
+  await page.locator('#volume-object').selectOption({ label: 'First' });
   await expect(page.locator('#volume-status')).toHaveText('First');
   await expect.poll(() => highlighted(page, 'A_First')).toBe(true);
-  await expect.poll(() => highlighted(page, 'B_First')).toBe(true);
   await expect.poll(() => highlighted(page, 'A_Second')).toBe(false);
   await page.locator('[data-view="after"]').click();
   await expect.poll(() => highlighted(page, 'First', 'after')).toBe(true);

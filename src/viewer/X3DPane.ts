@@ -1,4 +1,7 @@
 import { sanitizePreview } from './sanitize';
+import { Box3, Vector3 } from 'three';
+import { parsePrimitives } from './shapeGeometry';
+import { readAnalysisGeometry } from './analysisGeometry';
 
 type X3DCanvas = HTMLElement & { browser?: any };
 const xiteReady = import(
@@ -13,7 +16,8 @@ export class X3DPane {
   private loadRevision = 0;
   private pendingLoad: Promise<void> = Promise.resolve();
   private pathToCue = new Map<string, string>();
-  private activeCues: Array<{ field: any; value: boolean }> = [];
+  private activeCues: Array<{ field: any; value: boolean; name: string }> = [];
+  private sourceXml = '';
   private animationClocks: string[] = [];
   private animationsEnabled = true;
   private hasAuthoredView = false;
@@ -42,6 +46,7 @@ export class X3DPane {
     this.loadRevision++;
     this.clearCue();
     this.pathToCue.clear();
+    this.sourceXml = '';
     this.animationClocks = [];
     // Keep one WebGL context per pane across comparisons. Serialize world changes
     // with imports so a cancelled load cannot replace a newer scene.
@@ -74,6 +79,7 @@ export class X3DPane {
     note.textContent = '';
     try {
       const safe = sanitizePreview(xml);
+      this.sourceXml = safe.xml;
       this.pathToCue = safe.pathToCue;
       note.textContent = safe.notices.join(' ');
       await xiteReady;
@@ -156,17 +162,18 @@ export class X3DPane {
       } catch {}
     }
   }
-  setRegions(mode: string): void {
+  setRegions(mode: string, context = false): void {
     const visible =
       mode === 'all'
         ? ['BEFORE_ONLY', 'SHARED', 'AFTER_ONLY']
         : mode === 'changes'
           ? ['BEFORE_ONLY', 'AFTER_ONLY', 'AFTER_CONTEXT']
           : mode === 'before'
-            ? ['BEFORE_ONLY', 'BEFORE_CONTEXT']
+            ? ['BEFORE_ONLY']
             : mode === 'after'
-              ? ['AFTER_ONLY', 'AFTER_CONTEXT']
+              ? ['AFTER_ONLY']
               : ['SHARED'];
+    if (context) visible.push('BEFORE_CONTEXT', 'AFTER_CONTEXT');
     for (const name of ['BEFORE_ONLY', 'SHARED', 'AFTER_ONLY', 'BEFORE_CONTEXT', 'AFTER_CONTEXT']) {
       try {
         this.canvas.browser?.currentScene
@@ -203,9 +210,50 @@ export class X3DPane {
         if (!bbox) continue;
         const value = !!bbox.getValue?.().valueOf?.();
         bbox.setValue(true);
-        this.activeCues.push({ field: bbox, value });
+        this.activeCues.push({ field: bbox, value, name });
       } catch {}
     }
     return this.activeCues.length > 0;
+  }
+  /** Frame supported highlighted geometry in static world coordinates. */
+  async focusSelection(): Promise<boolean> {
+    const revision = this.loadRevision;
+    const names = new Set(this.activeCues.map((cue) => cue.name));
+    if (!names.size || !this.sourceXml) return false;
+    const xite = await xiteReady;
+    if (revision !== this.loadRevision) return false;
+    const bounds = new Box3();
+    for (const primitive of parsePrimitives(this.sourceXml)) {
+      let selected = false;
+      for (let node: Element | null = primitive.shape; node; node = node.parentElement)
+        if (names.has(node.getAttribute('DEF') ?? '')) selected = true;
+      if (!selected) continue;
+      try {
+        const geometry = readAnalysisGeometry(primitive);
+        try {
+          bounds.union(geometry.boundingBox!);
+        } finally {
+          geometry.dispose();
+        }
+      } catch {
+        /* An unsupported shape must not frame unrelated scene geometry. */
+      }
+    }
+    if (bounds.isEmpty()) return false;
+    const layer = this.canvas.browser?.getActiveLayer?.();
+    const viewpoint = layer?.getViewpoint?.();
+    if (!viewpoint?.lookAtBBox) return false;
+    const runtime = xite.default;
+    const size = bounds.getSize(new Vector3()),
+      center = bounds.getCenter(new Vector3());
+    viewpoint.lookAtBBox({
+      layerNode: layer,
+      bbox: new runtime.Box3(
+        new runtime.Vector3(size.x, size.y, size.z),
+        new runtime.Vector3(center.x, center.y, center.z),
+      ),
+      transitionTime: 0.3,
+    });
+    return true;
   }
 }

@@ -168,3 +168,321 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 
 
 
+/* Presence is a state; the action is shown once beside the object. */
+.presence-legend {
+  margin: 0;
+  padding: 8px 20px 12px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.presence-marker {
+  display: inline-block;
+  font-size: 21px;
+  line-height: 1;
+  vertical-align: middle;
+}
+.presence-marker.present {
+  color: var(--ink);
+}
+.presence-marker.absent {
+  color: var(--muted);
+  opacity: 0.65;
+}
+.change-action {
+  display: inline-block;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--soft);
+}
+.change-action.added {
+  color: var(--accent);
+}
+.change-action.removed {
+  color: #ba3879;
+}
+:root[data-theme='dark'] .change-action.removed {
+  color: #f790c3;
+}
+.vector-component {
+  display: block;
+  white-space: nowrap;
+}
+.component-changed {
+  font-weight: 650;
+  color: var(--ink);
+}
+.revision-value.after .component-changed {
+  color: var(--accent);
+}
+.component-delta {
+  font-size: 9px;
+  font-weight: 400;
+}
+.value-details {
+  margin-top: 6px;
+  font: 10px system-ui;
+  cursor: default;
+}
+.value-details summary {
+  cursor: pointer;
+  color: var(--accent);
+}
+.value-details pre {
+  max-height: 180px;
+  overflow: auto;
+  white-space: pre-wrap;
+  font:
+    10px Consolas,
+    monospace;
+  background: var(--soft);
+  padding: 8px;
+  border-radius: 5px;
+}
+.value-pages {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 9px;
+}
+.value-pages button {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  padding: 4px;
+}
+.group-controls {
+  display: flex;
+  align-items: stretch;
+}
+.group-controls .group-toggle {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  padding-left: 5px;
+}
+.group-expand {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  flex: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.group-expand:hover {
+  background: var(--active);
+  color: var(--ink);
+}
+.group-expand .group-chevron {
+  margin: 0;
+}
+.group-expand[aria-expanded='false'] .group-chevron {
+  transform: rotate(-45deg);
+}
+.group-heading.contains-selection .group-expand .group-chevron {
+  margin: 0;
+}
+.group-expand:focus-visible,
+.group-toggle:focus-visible,
+.volume-metric:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -3px;
+}
+.selection-tools {
+  display: flex;
+  align-items: center;
+  border-top: 1px solid var(--line);
+  padding-right: 12px;
+  background: var(--soft);
+  gap: 8px;
+}
+.selection-tools .selection-note {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  min-width: 0;
+}
+.selection-tools .button {
+  flex: none;
+  font-size: 10px;
+  padding: 7px 9px;
+}
+
+.volume-object-controls {
+  display: flex;
+  gap: 12px;
+  padding: 16px 16px 0;
+  align-items: end;
+  flex-wrap: wrap;
+}
+.volume-object-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  min-width: 0;
+}
+.volume-object-controls label:first-child {
+  flex: 1 1 180px;
+}
+.volume-object-controls label:last-child {
+  flex: 0 1 140px;
+}
+.volume-object-controls select {
+  width: 100%;
+  min-width: 0;
+  padding: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 12px;
+}
+#volume-object[hidden] {
+  display: none !important;
+}
+.volume-controls {
+  align-items: center;
+  gap: 8px;
+}
+.volume-controls .segmented-control {
+  flex-wrap: wrap;
+  flex-shrink: 1;
+}
+#volume-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0 16px 12px;
+}
+#volume-summary[hidden],
+#volume-empty[hidden],
+#volume-selection-notice[hidden] {
+  display: none !important;
+}
+.volume-metric {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--soft);
+  color: var(--ink);
+  padding: 10px;
+  text-align: left;
+  min-width: 0;
+  cursor: pointer;
+  box-shadow: inset 0 3px var(--volume-key);
+}
+.volume-metric.before {
+  --volume-key: var(--before);
+}
+.volume-metric.after {
+  --volume-key: var(--after);
+}
+.volume-metric.shared {
+  --volume-key: #80939e;
+}
+.volume-metric span {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+}
+.volume-metric strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 19px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.volume-metric[aria-pressed='true'] {
+  background: var(--active);
+  border-color: var(--accent);
+}
+.volume-metric:hover {
+  background: var(--active);
+}
+.volume-totals,
+.volume-retained {
+  grid-column: 1/-1;
+  margin: 4px 0 0;
+  font-size: 11px;
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+}
+.volume-retained {
+  color: var(--accent);
+  margin: 0;
+}
+.volume-context-control {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 0 16px 12px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.volume-context-control label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.volume-context-control input {
+  accent-color: var(--accent);
+}
+.volume-frame {
+  position: relative;
+}
+#volume-empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 85%;
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12px;
+  text-align: center;
+  pointer-events: none;
+}
+.volume-note,
+#volume-selection-notice {
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 12px 16px;
+}
+#volume-method:empty {
+  display: none;
+}
+#volume-selection-notice {
+  padding: 8px;
+  background: var(--soft);
+  border-left: 2px solid var(--accent);
+}
+@container (max-width:380px) {
+  .volume-metric {
+    padding: 10px 7px;
+  }
+  .volume-metric strong {
+    font-size: 16px;
+  }
+  .selection-tools {
+    flex-wrap: wrap;
+    padding-bottom: 10px;
+  }
+  .selection-tools .button {
+    margin-left: 20px;
+  }
+}

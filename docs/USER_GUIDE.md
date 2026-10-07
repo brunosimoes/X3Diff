@@ -26,7 +26,7 @@ Before is dashed pink; after is solid cyan. The 2D view preserves aspect ratio a
 
 Direct Box, Sphere, closed Cylinder, and convex IndexedFaceSet geometry under Group/Transform placement. The existing bounded mesh reader allows up to 3,000 coordinates and 10,000 triangles. Concave polygons, USE geometry, non-positive scales, unsupported placement, and ambiguous/missing pairs are excluded. If no supported pair remains, the Slice & measure tab is absent. An unsupported register selection keeps the previously named valid object with an explicit notice. Matching relies on the existing report plus DEF/path identity; remeshed semantic correspondence is not inferred.
 
-Geometry measurements are exploratory and remain separate from the semantic JSON export. Surface deviation provides sampled distance measurements. Automatic registration, continuous whole-surface flattening, signed volume measurement, and universal invariance are not implemented.
+Geometry measurements are exploratory and remain separate from the semantic JSON export. Surface deviation provides sampled distance measurements. Volume differences measures enclosed Boolean regions or estimates occupied grid cells for a selected supported pair. Automatic registration, continuous whole-surface flattening, and universal invariance are not implemented.
 
 ## Surface deviation
 
@@ -36,4 +36,18 @@ Sampling is computed on demand, yields periodically so the interface can respond
 
 ## Volume differences
 
-The main scene shows the revision overlay. Volume differences has its own preview for one matched object pair, identified above the scene. Choose Before only, Shared, or After only. Other scene objects are omitted from this view. Settings → Volume resolution adjusts curved-primitive tessellation and the mesh volume sampling grid (48, 85, or 170 cells along the longest bound). High halves the cell size relative to Medium. Mesh volume remains an approximation with visible grid steps; the main overlay retains the original mesh. Empty regions are valid. A calculation failure is shown in this tab without replacing the main comparison.
+The main scene shows the revision overlay. Volume differences has its own preview for a selected matched object pair. Its Object selector follows supported File differences selections and the other geometry views. A file selection without a supported pair keeps the previously selected volume object with an explicit notice. Other scene objects are omitted.
+
+**Combined** shows before-only space in pink, after-only space in cyan, and shared space in subdued grey. Choose a region or click its metric to isolate it. **Show transparent object context** keeps both original outlines visible while inspecting a region. An empty region shows an explicit message; it is a valid result.
+
+The three region metrics use scene units³. Before volume is before-only + shared; after volume is shared + after-only. **Net** is after-only − before-only; **Changed space** is before-only + after-only. **Original volume retained** is shared / before volume, as a percentage. For example, 20 before-only, 80 shared and 30 after-only means before 100, after 110, net +10, changed space 50, and 80% retained. A translated object can have zero net change while losing and gaining occupied space. These measurements describe spatial occupancy, not a manufacturing process or whole-assembly collision.
+
+Primitive region volumes are measured from oriented triangles of the closed Boolean surfaces. Curved primitives use tessellation and are approximate. Mesh metrics count occupied cells times cell volume; the occupancy method fills between paired ray intersections, so open meshes can affect the estimate. The method and mesh cell size are shown below the preview. Tiny Boolean residuals below one part per million of the larger volume display as **≈0**.
+
+**Resolution** in this tab and Settings → Volume resolution control the same saved setting: curved-primitive tessellation and the mesh volume sampling grid (48, 85, or 170 cells along the longest bound). High halves the cell size relative to Medium. Mesh volume remains an approximation with visible grid steps; the main overlay retains the original mesh. A calculation failure is shown in this tab without replacing the main comparison.
+
+## File differences
+
+**● Present** and **○ Absent** consistently describe each revision; the action appears once beside each declaration as **+ Added** or **− Removed**. Numeric properties include a delta, and translation/scale/dimensions label X/Y/Z while emphasizing changed components. Long arrays open under **Inspect values**, with 100 entries per page. Colours retain their swatches and numeric values.
+
+Click an object name or property row to highlight its scene geometry. The separate chevron expands or collapses a group's differences without changing selection. **Focus selected** explicitly frames supported static geometry; ordinary selection preserves the camera. Unsupported geometry remains highlighted with an explanatory notice when it cannot be framed.

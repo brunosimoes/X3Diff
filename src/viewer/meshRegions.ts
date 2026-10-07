@@ -162,8 +162,9 @@ export function buildMeshRegions(
     const a = occupancy(before),
       b = occupancy(after);
     const category = new Uint8Array(a.length);
+    const occupied = [0, 0, 0, 0];
     for (let i = 0; i < category.length; i++)
-      category[i] = a[i] && b[i] ? 2 : a[i] ? 1 : b[i] ? 3 : 0;
+      occupied[(category[i] = a[i] && b[i] ? 2 : a[i] ? 1 : b[i] ? 3 : 0)]++;
     const regions = ([1, 2, 3] as const).map((region) => {
       const vertices: number[] = [],
         indices: number[] = [],
@@ -205,6 +206,7 @@ export function buildMeshRegions(
       result.setAttribute('position', new Float32BufferAttribute(vertices, 3));
       result.setIndex(indices);
       result.userData.voxelSize = step;
+      result.userData.occupiedVolume = occupied[region] * step ** 3;
       result.computeVertexNormals();
       return result;
     }) as [BufferGeometry, BufferGeometry, BufferGeometry];

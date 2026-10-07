@@ -12,14 +12,16 @@ Watch the [three-minute Web3D 2026 demonstration](https://brunosimoes.github.io/
 
 Load files through the icons inside **Before** and **After**, or choose an example. Comparison starts automatically when both inputs exist. Select a difference to highlight the corresponding object in the main overlay.
 
-| Analysis view      | Question it helps answer                                       |
-| ------------------ | -------------------------------------------------------------- |
-| File differences        | Which supported declarations and values changed?               |
-| Slice & measure    | How do the cross-sections differ at this position?             |
-| Surface deviation  | Where are sampled distances between the surfaces larger?       |
-| Volume differences | What is before-only, shared, or after-only for a matched pair? |
+| Analysis view      | Question it helps answer                                         |
+| ------------------ | ---------------------------------------------------------------- |
+| File differences   | Which supported declarations and values changed?                 |
+| Slice & measure    | How do the cross-sections differ at this position?               |
+| Surface deviation  | Where are sampled distances between the surfaces larger?         |
+| Volume differences | How much occupied space changed, and where, for a selected pair? |
 
 Geometry views appear only when supported changed pairs are available. **Customize** controls tab order and visibility. The app remembers tab choices, region, resolution, theme, and layout. A single available object is shown as text; multiple objects use a selector. Surface scales and statistics are embedded in their interactive views. **Export** downloads the semantic JSON report; exploratory geometry measurements are separate.
+
+File differences uses ●/○ for present/absent, with separate Added/Removed badges. Group chevrons expand details; object names highlight the scene; **Focus selected** frames supported static geometry. Volume differences opens a combined region view and reports before-only, shared, after-only, net change, changed space, and original-volume retention in scene units³. Its object selection follows File differences and the other geometry views. Click a region metric to isolate it, and use transparent object context to preserve spatial orientation.
 
 ## Run and validate
 

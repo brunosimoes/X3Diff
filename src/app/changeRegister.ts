@@ -68,6 +68,17 @@ function valueCell(change: ChangeRecord, side: 'before' | 'after'): HTMLTableCel
   const td = document.createElement('td');
   td.className = `revision-value ${side}`;
   const value = change[side]?.value;
+  if (change.kind === 'nodeAdded' || change.kind === 'nodeRemoved') {
+    const present = change.kind === 'nodeAdded' ? side === 'after' : side === 'before';
+    const marker = document.createElement('span');
+    marker.className = `presence-marker ${present ? 'present' : 'absent'}`;
+    marker.textContent = present ? '●' : '○';
+    marker.setAttribute('role', 'img');
+    marker.setAttribute('aria-label', `${present ? 'Present' : 'Absent'} ${side}`);
+    marker.title = `${present ? 'Present' : 'Absent'} ${side}`;
+    td.append(marker);
+    return td;
+  }
   if (
     change.category === 'document' &&
     Array.isArray(value) &&
@@ -91,8 +102,6 @@ function valueCell(change: ChangeRecord, side: 'before' | 'after'): HTMLTableCel
     return td;
   }
   let label = compact(value);
-  if (change.kind === 'nodeAdded') label = side === 'before' ? 'Absent' : 'Added';
-  if (change.kind === 'nodeRemoved') label = side === 'before' ? 'Present' : 'Removed';
   if (change.field === 'point' && change.totalPoints)
     label = side === 'before' ? `${change.totalPoints} points` : `${change.movedPoints} moved`;
   if (change.kind === 'nodeRenamed')
@@ -109,9 +118,74 @@ function valueCell(change: ChangeRecord, side: 'before' | 'after'): HTMLTableCel
     td.append(swatch);
   }
   const text = document.createElement('span');
-  text.textContent = label;
+  const other = change[side === 'before' ? 'after' : 'before']?.value;
+  const axes = ['translation', 'scale', 'size'].includes(change.field ?? '');
+  if (axes && Array.isArray(value) && value.length === 3) {
+    value.forEach((component, i) => {
+      const axis = document.createElement('span');
+      axis.className = 'vector-component';
+      if (Array.isArray(other) && component !== other[i]) axis.classList.add('component-changed');
+      axis.textContent = `${['X', 'Y', 'Z'][i]} ${compact(component)}`;
+      if (
+        side === 'after' &&
+        Array.isArray(other) &&
+        typeof component === 'number' &&
+        typeof other[i] === 'number' &&
+        component !== other[i]
+      ) {
+        const delta = component - other[i];
+        const tag = document.createElement('small');
+        tag.className = 'component-delta';
+        tag.textContent = ` (${delta > 0 ? '+' : ''}${number(delta)})`;
+        axis.append(tag);
+      }
+      text.append(axis);
+    });
+  } else text.textContent = label;
   text.title = label;
   td.append(text);
+  if (Array.isArray(value) && value.length > 9) {
+    const details = document.createElement('details');
+    details.className = 'value-details';
+    const summary = document.createElement('summary');
+    summary.textContent = 'Inspect values';
+    const values = document.createElement('pre');
+    let page = 0;
+    const navigation = document.createElement('div');
+    navigation.className = 'value-pages';
+    const previous = document.createElement('button'),
+      next = document.createElement('button');
+    previous.type = next.type = 'button';
+    previous.textContent = 'Previous';
+    next.textContent = 'Next';
+    const range = document.createElement('span');
+    const draw = () => {
+      const start = page * 100,
+        end = Math.min(value.length, start + 100);
+      values.textContent = value
+        .slice(start, end)
+        .map((entry, i) => `${start + i}: ${compact(entry)}`)
+        .join('\n');
+      range.textContent = `${start + 1}–${end} of ${value.length}`;
+      previous.disabled = page === 0;
+      next.disabled = end === value.length;
+    };
+    previous.addEventListener('click', () => {
+      page--;
+      draw();
+    });
+    next.addEventListener('click', () => {
+      page++;
+      draw();
+    });
+    details.addEventListener('toggle', () => {
+      if (details.open) draw();
+    });
+    navigation.append(previous, range, next);
+    details.append(summary, values, navigation);
+    details.addEventListener('click', (event) => event.stopPropagation());
+    td.append(details);
+  }
   if (typeof value === 'number' && side === 'after' && typeof change.before?.value === 'number') {
     const delta = value - change.before.value;
     const tag = document.createElement('small');
@@ -188,12 +262,20 @@ export function renderRegister(
       cell.scope = 'rowgroup';
       const toggle = document.createElement('button');
       toggle.type = 'button';
-      toggle.className = 'group-toggle';
-      toggle.title = `Highlight ${name} in the scene and expand or collapse its differences`;
+      toggle.className = 'group-expand';
+      toggle.setAttribute('aria-label', `Expand or collapse ${name} differences`);
+      toggle.title = `Expand or collapse ${name} differences`;
       toggle.setAttribute('aria-expanded', String(!collapseLargeReport));
+      body.id = `change-group-${index}`;
+      toggle.setAttribute('aria-controls', body.id);
+      const highlight = document.createElement('button');
+      highlight.type = 'button';
+      highlight.className = 'group-toggle object-link';
+      highlight.title = `Highlight ${name} in the scene`;
+      highlight.setAttribute('aria-pressed', 'false');
       const title = document.createElement('strong');
       title.textContent = name;
-      toggle.append(title);
+      highlight.append(title);
       const count = document.createElement('span');
       count.className = 'group-count';
       count.textContent = `${changes.length} differences`;
@@ -203,16 +285,22 @@ export function renderRegister(
       const selectionHint = document.createElement('span');
       selectionHint.className = 'group-selection-hint';
       selectionHint.textContent = 'Selected child';
-      toggle.append(count, selectionHint, chevron);
-      toggle.addEventListener('click', () => {
-        markSelected(table, header);
+      highlight.append(count, selectionHint);
+      toggle.append(chevron);
+      highlight.addEventListener('click', () => {
+        markSelected(table, header, highlight);
         select(changes[0], changes, name);
+      });
+      toggle.addEventListener('click', () => {
         const expanded = toggle.getAttribute('aria-expanded') !== 'true';
         toggle.setAttribute('aria-expanded', String(expanded));
         for (const row of Array.from(body.querySelectorAll('tr:not(.group-heading)')))
           (row as HTMLTableRowElement).hidden = !expanded;
       });
-      cell.append(toggle);
+      const controls = document.createElement('div');
+      controls.className = 'group-controls';
+      controls.append(toggle, highlight);
+      cell.append(controls);
       header.append(cell);
       body.append(header);
     }
@@ -253,6 +341,17 @@ export function renderRegister(
       sequence.textContent = String(++index).padStart(2, '0');
       const words = document.createElement('span');
       words.append(object, property);
+      if (change.kind === 'nodeAdded' || change.kind === 'nodeRemoved') {
+        property.textContent = '';
+        const badge = document.createElement('span');
+        badge.className = `change-action ${change.kind === 'nodeAdded' ? 'added' : 'removed'}`;
+        badge.textContent = change.kind === 'nodeAdded' ? '+ Added' : '− Removed';
+        if (changes.length > 1 && mixedNodes)
+          property.append(
+            document.createTextNode(`${node?.defName ?? node?.nodeType ?? 'Scene'} · `),
+          );
+        property.append(badge);
+      }
       button.append(sequence, words);
       button.title = `Highlight ${node?.defName ?? node?.nodeType ?? 'Scene'} in the scene`;
       const selectRow = () => {
@@ -288,4 +387,8 @@ export function renderRegister(
     table.append(body);
   }
   container.append(table);
+  const legend = document.createElement('p');
+  legend.className = 'presence-legend';
+  legend.textContent = '● Present · ○ Absent';
+  container.prepend(legend);
 }

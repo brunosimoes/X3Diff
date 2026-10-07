@@ -16,7 +16,12 @@ test('volume resolution rebuilds curved regions and persists after reload', asyn
   }
   await expect(page.locator('#global-status')).toHaveText('');
   await page.locator('#analysis-tab-volume').click();
-  await expect(page.locator('#region button')).toHaveText(['Before only', 'Shared', 'After only']);
+  await expect(page.locator('#region button')).toHaveText([
+    'Combined',
+    'Before only',
+    'Shared',
+    'After only',
+  ]);
   await expect(page.locator('[data-display]')).toHaveCount(0);
   const count = () =>
     page.evaluate(() => {

@@ -30,7 +30,7 @@ test('all examples render, volume works, and canvases survive repeated compariso
       await page.locator('[data-region="shared"]').click();
       await expect(page.locator('[data-region="shared"]')).toHaveAttribute('aria-pressed', 'true');
       await page.locator('#analysis-tab-differences').click();
-      await page.locator('.object-group .object-link').first().click();
+      await page.locator('.object-group .change-row .object-link').first().click();
       await expect(page.locator('.change-row.selected')).toHaveCount(1);
       await expect(page.locator('.group-heading.contains-selection')).toHaveCount(1);
       await expect(page.locator('.group-heading.selected')).toHaveCount(0);
