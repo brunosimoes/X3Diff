@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE X3D PUBLIC "ISO//Web3D//DTD X3D 3.3//EN" "https://www.web3d.org/specifications/x3d-3.3.dtd">
+<X3D profile="Immersive" version="3.3">
+  <head>
+    <meta name="title" content="studio-lights.x3d"/>
+    <meta name="description" content="A small lit scene for the X3Diff light comparison tests: original."/>
+  </head>
+  <Scene>
+    <NavigationInfo headlight="false"/>
+    <Viewpoint DEF="Front" description="Front" position="0 2 12"/>
+    <DirectionalLight DEF="Sun" direction="-0.4 -1 -0.3" intensity="1" color="1 1 1"/>
+    <PointLight DEF="Lamp" location="2 3 2" color="1 0.9 0.6" intensity="1" radius="20"/>
+    <Transform DEF="Stage" translation="0 0 0">
+      <SpotLight DEF="Spot" location="0 5 0" direction="0 -1 0" beamWidth="0.4" cutOffAngle="0.6" on="true"/>
+      <Shape>
+        <Appearance><Material diffuseColor="0.8 0.8 0.8"/></Appearance>
+        <Box size="6 0.2 6"/>
+      </Shape>
+    </Transform>
+    <Transform DEF="Statue" translation="0 1.1 0">
+      <Shape>
+        <Appearance><Material diffuseColor="0.7 0.3 0.2"/></Appearance>
+        <Cylinder radius="0.6" height="2"/>
+      </Shape>
+    </Transform>
+    <Group DEF="Fill">
+      <PointLight DEF="FillLamp" location="-3 2 1" intensity="0.3"/>
+      <PointLight USE="FillLamp"/>
+    </Group>
+  </Scene>
+</X3D>

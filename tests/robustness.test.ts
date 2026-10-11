@@ -145,3 +145,17 @@ describe('input encoding', () => {
     ).rejects.toThrow('UTF-8');
   });
 });
+describe('unreadable input', () => {
+  it('reports one broken file as one diagnostic', () => {
+    for (const broken of [
+      '<X3D version="3.3"><Scene><Shape>',
+      'not xml at all',
+      '<X3D version="3.3"><Scene><Shape><Box size="1 1"></Scene></X3D>',
+    ]) {
+      const report = compareX3D(broken, scene('<Shape><Box/></Shape>'));
+      expect(report.summary.status).toBe('failed');
+      expect(report.diagnostics.map((d) => `${d.code} ${d.side}`)).toEqual(['XML_PARSE before']);
+      expect(parseX3D(broken, 'after').diagnostics).toHaveLength(1);
+    }
+  });
+});

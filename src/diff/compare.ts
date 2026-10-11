@@ -12,7 +12,8 @@ import type {
 } from '../report/schema';
 
 import { DEFAULT_TOLERANCE } from './tolerance';
-export { DEFAULT_TOLERANCE } from './tolerance';
+import { LIGHTS } from '../x3d/lights';
+import { version as toolVersion } from '../../package.json';
 function flatten(nodes: ParsedNode[]): ParsedNode[] {
   const result: ParsedNode[] = [],
     stack = [...nodes].reverse();
@@ -68,11 +69,29 @@ function category(
     return { kind: 'transformChanged', category: 'transform', severity: 'high' };
   if (
     n.type === 'Coordinate' ||
-    ['Box', 'Sphere', 'Cylinder', 'IndexedFaceSet', 'Text'].includes(n.type)
+    [
+      'Box',
+      'Sphere',
+      'Cylinder',
+      'Cone',
+      'Extrusion',
+      'IndexedFaceSet',
+      'IndexedLineSet',
+      'Text',
+    ].includes(n.type)
   )
     return { kind: 'geometryChanged', category: 'geometry', severity: 'high' };
   if (n.type === 'Material')
     return { kind: 'materialChanged', category: 'material', severity: 'high' };
+  if (n.type === 'PixelTexture' || n.type === 'TextureTransform')
+    return { kind: 'appearanceChanged', category: 'texture', severity: 'medium' };
+  // Per-vertex colours are how the geometry looks, not what shape it is.
+  if (n.type === 'Color')
+    return { kind: 'appearanceChanged', category: 'appearance', severity: 'medium' };
+  if (n.type === 'IntegerSequencer')
+    return { kind: 'animationConfigChanged', category: 'behavior', severity: 'medium' };
+  if (n.type === 'NavigationInfo')
+    return { kind: 'viewpointChanged', category: 'viewpoint', severity: 'medium' };
   if (field === 'url' && n.type === 'ImageTexture')
     return { kind: 'textureReferenceChanged', category: 'texture', severity: 'medium' };
   if (n.type === 'Appearance')
@@ -83,8 +102,10 @@ function category(
     return { kind: 'animationConfigChanged', category: 'behavior', severity: 'medium' };
   if (n.type.includes('Metadata') || n.type === 'WorldInfo')
     return { kind: 'metadataChanged', category: 'metadata', severity: 'low' };
-  if (n.type === 'Viewpoint')
+  if (n.type === 'Viewpoint' || n.type === 'OrthoViewpoint')
     return { kind: 'viewpointChanged', category: 'viewpoint', severity: 'medium' };
+  // Lights change how every lit surface looks, without changing any object.
+  if (LIGHTS.has(n.type)) return { kind: 'lightChanged', category: 'lighting', severity: 'medium' };
   if (n.type === 'Inline')
     return { kind: 'fieldChanged', category: 'external reference', severity: 'medium' };
   return { kind: 'fieldChanged', category: 'field', severity: 'medium' };
@@ -100,6 +121,8 @@ function quaternion(v: number[]): number[] {
 function numberEqual(a: number, b: number, t: ToleranceConfig): boolean {
   return Math.abs(a - b) <= t.floatAbs + t.floatRel * Math.max(Math.abs(a), Math.abs(b));
 }
+/** Integers and image pixels are compared exactly; tolerances are for measured quantities. */
+const exact = (type: string) => type.includes('Int') || type.includes('Image');
 function valuesEqual(
   a: ValueSnapshot | undefined,
   b: ValueSnapshot | undefined,
@@ -111,7 +134,7 @@ function valuesEqual(
     bv = b.value,
     type = a.fieldType || b.fieldType || '';
   if (typeof av === 'number' && typeof bv === 'number')
-    return type.includes('Int') ? av === bv : numberEqual(av, bv, t);
+    return exact(type) ? av === bv : numberEqual(av, bv, t);
   if (Array.isArray(av) && Array.isArray(bv)) {
     if (av.length !== bv.length) return false;
     if (type === 'SFRotation') {
@@ -125,6 +148,13 @@ function valuesEqual(
     }
     if (type === 'SFColor' || type === 'SFColorRGBA')
       return Math.max(...av.map((v, i) => Math.abs(Number(v) - Number(bv[i])))) <= t.colorAbs;
+    // A light's direction is a direction: its length does not change the light.
+    if (type === 'SFVec3f' && field === 'direction') {
+      const la = Math.hypot(...(av as number[])),
+        lb = Math.hypot(...(bv as number[]));
+      if (la > 0 && lb > 0)
+        return Math.hypot(...av.map((v, i) => Number(v) / la - Number(bv[i]) / lb)) <= t.vectorAbs;
+    }
     if (type.startsWith('SFVec'))
       return Math.hypot(...av.map((v, i) => Number(v) - Number(bv[i]))) <= t.vectorAbs;
     if (type === 'MFVec3f' && field === 'point')
@@ -142,7 +172,7 @@ function valuesEqual(
             t,
             field,
           )
-        : typeof v === 'number' && typeof bv[i] === 'number' && !type.includes('Int')
+        : typeof v === 'number' && typeof bv[i] === 'number' && !exact(type)
           ? numberEqual(v, bv[i] as number, t)
           : v === bv[i],
     );
@@ -170,6 +200,15 @@ function pointCount(
       moved++;
   return { moved, total: x.length };
 }
+/**
+ * Versions read with the X3D 3.3 catalog. 3.0 to 3.2 declare the catalogued nodes with the
+ * same fields, types and defaults. 4.0 keeps every one of those and adds fields. The catalog
+ * generator checks each default against the official X3DUOM 4.0 and records the one that
+ * changed (SpotLight.beamWidth); the 4.0 light fields `shadows` and `shadowIntensity` are in
+ * the catalog, and every other 4.0 addition is reported as an unsupported setting rather
+ * than misread.
+ */
+export const READABLE_VERSIONS = ['3.0', '3.1', '3.2', '3.3', '4.0'];
 export function compareX3D(
   beforeText: string,
   afterText: string,
@@ -183,13 +222,29 @@ export function compareX3D(
     changes: ChangeRecord[] = [];
   const add = (c: Omit<ChangeRecord, 'id'>) =>
     changes.push({ id: `c${String(changes.length + 1).padStart(5, '0')}`, ...c });
-  const versionOK = before.summary.x3dVersion === '3.3' && after.summary.x3dVersion === '3.3';
-  if (!versionOK)
+  const versions = [before.summary.x3dVersion, after.summary.x3dVersion];
+  const versionOK = versions.every((v) => !!v && READABLE_VERSIONS.includes(v));
+  // An unreadable file has no version; its parse error is the only useful message.
+  if (!versionOK && !before.fatal && !after.fatal)
     diagnostics.push({
       code: 'VERSION_UNSUPPORTED',
       severity: 'error',
-      message: `Only X3D 3.3 pairs are supported (received ${before.summary.x3dVersion || '?'} and ${after.summary.x3dVersion || '?'})`,
+      message: `Only X3D 3.0 to 4.0 files are supported (received ${before.summary.x3dVersion || '?'} and ${after.summary.x3dVersion || '?'})`,
     });
+  if (versionOK)
+    for (const side of ['before', 'after'] as const) {
+      const version = (side === 'before' ? before : after).summary.x3dVersion;
+      if (version !== '3.3')
+        diagnostics.push({
+          code: 'VERSION_READ_AS_3_3',
+          severity: 'warning',
+          side,
+          message:
+            version === '4.0'
+              ? 'X3D 4.0 file read with the X3D 3.3 catalog; apart from the light shadow settings, settings and nodes new in 4.0 are not compared'
+              : `X3D ${version} file read with the X3D 3.3 catalog`,
+        });
+    }
   if (!before.fatal && !after.fatal && versionOK) {
     const allBefore = flatten(before.nodes),
       allAfter = flatten(after.nodes);
@@ -477,6 +532,16 @@ export function compareX3D(
         before: { value: before.meta },
         after: { value: after.meta },
       });
+    if (before.summary.x3dVersion !== after.summary.x3dVersion)
+      add({
+        kind: 'documentContextChanged',
+        severity: 'low',
+        confidence: 'high',
+        category: 'document',
+        message: 'X3D version changed',
+        before: { value: before.summary.x3dVersion },
+        after: { value: after.summary.x3dVersion },
+      });
     if (before.summary.profile !== after.summary.profile)
       add({
         kind: 'documentContextChanged',
@@ -522,7 +587,7 @@ export function compareX3D(
           : 'complete';
   return {
     schemaVersion: '1.0',
-    toolVersion: '0.1.0',
+    toolVersion,
     inputs: { before: before.summary, after: after.summary },
     config: { ...t, enabledCategories: ['all'] },
     summary: { status, countsByKind, countsBySeverity, unsupportedCount },

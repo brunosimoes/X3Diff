@@ -1,0 +1,5 @@
+# Golden reports and input byte counts are byte-exact: keep LF on every platform.
+* text=auto eol=lf
+*.mp4 binary
+*.jpg binary
+*.png binary

@@ -34,6 +34,8 @@ export interface ParsedScene {
 const nodeNames = new Set(Object.keys(catalog));
 const supportedTypes = new Set([
   'SFBool',
+  'MFBool',
+  'SFImage',
   'SFInt32',
   'SFFloat',
   'SFDouble',
@@ -63,6 +65,20 @@ const supportedTypes = new Set([
   'MFNode',
 ]);
 export const supportedFieldTypes = [...supportedTypes].sort();
+/**
+ * Where X3D 4.0 places a catalogued node differently from 3.3: a Metadata node
+ * inside a MetadataSet defaults to containerField "value" (x3d-4.0.xsd,
+ * containerFieldChoicesMetadata); in 3.x it must say so explicitly. Without this, a 4.0
+ * metadata set would look re-parented against its 3.3 original.
+ */
+const METADATA_NODES = new Set([
+  'MetadataBoolean',
+  'MetadataDouble',
+  'MetadataFloat',
+  'MetadataInteger',
+  'MetadataSet',
+  'MetadataString',
+]);
 const XMLNS = 'http://www.w3.org/2000/xmlns/';
 const XSI = 'http://www.w3.org/2001/XMLSchema-instance';
 function annotation(a: {
@@ -145,6 +161,27 @@ export function typedValue(raw: string, type: string): ValueSnapshot {
   else if (type === 'SFBool') {
     if (raw !== 'true' && raw !== 'false') throw new Error(`Invalid SFBool ${raw}`);
     value = raw === 'true';
+  } else if (type === 'MFBool') {
+    const tokens = raw.trim() ? raw.trim().split(/[\s,]+/) : [];
+    if (tokens.some((token) => token !== 'true' && token !== 'false'))
+      throw new Error('Invalid MFBool item');
+    value = tokens.map((token) => token === 'true');
+  } else if (type === 'SFImage') {
+    // width height components, then one integer per pixel.
+    const image = numeric(raw, 1, true, true) as number[];
+    const [width, height, components] = image;
+    if (
+      image.length < 3 ||
+      ![0, 1, 2, 3, 4].includes(components) ||
+      width < 0 ||
+      height < 0 ||
+      (width * height > 0 && components === 0) ||
+      image.length !== 3 + width * height ||
+      image.some((v) => v < 0 || v > 0xffffffff) ||
+      image.slice(3).some((v) => v >= 256 ** components)
+    )
+      throw new Error('Invalid SFImage');
+    value = image;
   } else if (type === 'SFNode' || type === 'MFNode') value = raw;
   else {
     const multi = type.startsWith('MF');
@@ -191,7 +228,7 @@ export function parseX3D(text: string, side: 'before' | 'after', name?: string):
   });
   if (diagnostics.some((d) => d.severity === 'error')) return empty();
   const errors: string[] = [];
-  let doc: Document;
+  let doc: Document | undefined;
   try {
     doc = new DOMParser({
       errorHandler: (level, msg) => {
@@ -200,19 +237,12 @@ export function parseX3D(text: string, side: 'before' | 'after', name?: string):
     }).parseFromString(text, 'application/xml');
   } catch (err) {
     errors.push((err as Error).message);
-    diagnostics.push(
-      ...errors.map((message) => ({
-        code: 'XML_PARSE',
-        severity: 'error' as const,
-        side,
-        message,
-      })),
-    );
-    return empty();
   }
-  if (errors.length) {
+  if (errors.length || !doc) {
+    // The parser hands a fatal error to the handler and then throws it with the same
+    // message: one problem in the file is one diagnostic.
     diagnostics.push(
-      ...errors.map((message) => ({
+      ...[...new Set(errors)].map((message) => ({
         code: 'XML_PARSE',
         severity: 'error' as const,
         side,
@@ -278,6 +308,11 @@ export function parseX3D(text: string, side: 'before' | 'after', name?: string):
       use = e.getAttribute('USE') || undefined;
     const cf =
       e.getAttribute('containerField') ||
+      (summary.x3dVersion === '4.0' &&
+      METADATA_NODES.has(type) &&
+      /\/MetadataSet\[\d+\]$/.test(parentPath)
+        ? 'value'
+        : undefined) ||
       (known ? catalog[type as keyof typeof catalog].containerField : '?');
     const node: ParsedNode = {
       type,
@@ -293,14 +328,23 @@ export function parseX3D(text: string, side: 'before' | 'after', name?: string):
     };
     summary.parsedNodeCount++;
     if (summary.parsedNodeCount > 50000) throw new Error('NODE_LIMIT');
-    if (!known)
+    if (!known) {
+      // One skipped element is one diagnostic: its own fields are named inside it.
+      const fields = Array.from({ length: e.attributes.length }, (_, i) => e.attributes.item(i)!)
+        .filter(
+          (a) =>
+            !annotation(a) &&
+            (a.namespaceURI || !['DEF', 'USE', 'containerField'].includes(a.name)),
+        )
+        .map((a) => a.name);
       diagnostics.push({
         code: 'UNSUPPORTED_NODE',
         severity: 'warning',
         side,
-        message: `${type} is opaque`,
+        message: `${type} is opaque${fields.length ? `; its fields were not compared: ${fields.join(', ')}` : ''}`,
         path,
       });
+    }
     if (['Inline', 'ImageTexture', 'Anchor'].includes(type))
       diagnostics.push({
         code: 'EXTERNAL_CONTENT_NOT_LOADED',
@@ -339,7 +383,7 @@ export function parseX3D(text: string, side: 'before' | 'after', name?: string):
     const fieldCatalog = known
       ? (catalog[type as keyof typeof catalog].fields as Record<
           string,
-          { type: string; default?: string }
+          { type: string; default?: string; default40?: string }
         >)
       : {};
     for (let i = 0; i < e.attributes.length; i++) {
@@ -347,6 +391,7 @@ export function parseX3D(text: string, side: 'before' | 'after', name?: string):
       const key = a.name;
       if (annotation(a) || (!a.namespaceURI && ['DEF', 'USE', 'containerField'].includes(key)))
         continue;
+      if (!known) continue;
       const field = a.namespaceURI ? undefined : fieldCatalog[key];
       if (!field || !supportedTypes.has(field.type)) {
         node.opaque = true;
@@ -364,7 +409,7 @@ export function parseX3D(text: string, side: 'before' | 'after', name?: string):
         if (
           !field.type.includes('String') &&
           !field.type.includes('Node') &&
-          field.type !== 'SFBool'
+          !field.type.includes('Bool')
         ) {
           numericScalars += (a.value.match(/[^\s,]+/g) || []).length;
           if (numericScalars > 5000000) throw new Error('SCALAR_LIMIT');
@@ -391,7 +436,10 @@ export function parseX3D(text: string, side: 'before' | 'after', name?: string):
           !['SFNode', 'MFNode'].includes(field.type)
         ) {
           try {
-            node.attrs[key] = typedValue(field.default, field.type);
+            // A default that X3D 4.0 changed applies to files that declare 4.0.
+            const fallback =
+              summary.x3dVersion === '4.0' ? (field.default40 ?? field.default) : field.default;
+            node.attrs[key] = typedValue(fallback, field.type);
           } catch {
             diagnostics.push({
               code: 'INVALID_CATALOG_DEFAULT',
@@ -402,6 +450,9 @@ export function parseX3D(text: string, side: 'before' | 'after', name?: string):
             });
           }
         }
+    // Unknown containers are opaque as a whole. In particular, prototype bodies
+    // have a separate DEF scope and must not contribute scene nodes or ROUTEs.
+    if (!known) return node;
     const counts = new Map<string, number>();
     for (const child of elementChildren(e)) {
       const childType = local(child);

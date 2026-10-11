@@ -1,9 +1,11 @@
-// Generated from official Web3D X3DUOM 3.3 and X3D 3.3 XSD. Do not hand edit.
+// Generated from official Web3D X3DUOM 3.3 and X3D 3.3 XSD, with the X3D 4.0 light fields and defaults from X3DUOM 4.0. Do not hand edit.
 export const catalogProvenance = {
   "modelUrl": "https://www.web3d.org/specifications/X3dUnifiedObjectModel-3.3.xml",
   "modelSha256": "6d9561c4398512e9a891e1221667b6a11994c20979aa4bbcabc21cbf056c0eae",
   "schemaUrl": "https://www.web3d.org/specifications/x3d-3.3.xsd",
-  "schemaSha256": "a687b059a480a599b4bba0ca78c20ed17202ffe06450c24379833e3a26fe875b"
+  "schemaSha256": "a687b059a480a599b4bba0ca78c20ed17202ffe06450c24379833e3a26fe875b",
+  "model40Url": "https://www.web3d.org/specifications/X3dUnifiedObjectModel-4.0.xml",
+  "model40Sha256": "51a02e414fee63ec58fd590dbc9d05b2acc3a32aa470241e04b39acdf40067bd"
 } as const;
 export const catalog = {
   "Anchor": {
@@ -1130,6 +1132,698 @@ export const catalog = {
         "accessType": "inputOutput"
       }
     }
+  },
+  "Billboard": {
+    "containerField": "children",
+    "fields": {
+      "axisOfRotation": {
+        "type": "SFVec3f",
+        "accessType": "inputOutput",
+        "default": "0 1 0"
+      },
+      "bboxCenter": {
+        "type": "SFVec3f",
+        "accessType": "initializeOnly",
+        "default": "0 0 0"
+      },
+      "bboxSize": {
+        "type": "SFVec3f",
+        "accessType": "initializeOnly",
+        "default": "-1 -1 -1"
+      },
+      "children": {
+        "type": "MFNode",
+        "accessType": "inputOutput"
+      },
+      "class": {
+        "type": "SFString",
+        "accessType": "inputOutput"
+      },
+      "metadata": {
+        "type": "SFNode",
+        "accessType": "inputOutput",
+        "default": "NULL"
+      }
+    }
+  },
+  "Collision": {
+    "containerField": "children",
+    "fields": {
+      "bboxCenter": {
+        "type": "SFVec3f",
+        "accessType": "initializeOnly",
+        "default": "0 0 0"
+      },
+      "bboxSize": {
+        "type": "SFVec3f",
+        "accessType": "initializeOnly",
+        "default": "-1 -1 -1"
+      },
+      "children": {
+        "type": "MFNode",
+        "accessType": "inputOutput"
+      },
+      "class": {
+        "type": "SFString",
+        "accessType": "inputOutput"
+      },
+      "enabled": {
+        "type": "SFBool",
+        "accessType": "inputOutput",
+        "default": "true"
+      },
+      "metadata": {
+        "type": "SFNode",
+        "accessType": "inputOutput",
+        "default": "NULL"
+      },
+      "proxy": {
+        "type": "SFNode",
+        "accessType": "initializeOnly",
+        "default": "NULL"
+      }
+    }
+  },
+  "Color": {
+    "containerField": "color",
+    "fields": {
+      "class": {
+        "type": "SFString",
+        "accessType": "inputOutput"
+      },
+      "color": {
+        "type": "MFColor",
+        "accessType": "inputOutput"
+      },
+      "metadata": {
+        "type": "SFNode",
+        "accessType": "inputOutput",
+        "default": "NULL"
+      }
+    }
+  },
+  "Cone": {
+    "containerField": "geometry",
+    "fields": {
+      "bottom": {
+        "type": "SFBool",
+        "accessType": "inputOutput",
+        "default": "true"
+      },
+      "bottomRadius": {
+        "type": "SFFloat",
+        "accessType": "initializeOnly",
+        "default": "1"
+      },
+      "class": {
+        "type": "SFString",
+        "accessType": "inputOutput"
+      },
+      "height": {
+        "type": "SFFloat",
+        "accessType": "initializeOnly",
+        "default": "2"
+      },
+      "metadata": {
+        "type": "SFNode",
+        "accessType": "inputOutput",
+        "default": "NULL"
+      },
+      "side": {
+        "type": "SFBool",
+        "accessType": "initializeOnly",
+        "default": "true"
+      },
+      "solid": {
+        "type": "SFBool",
+        "accessType": "initializeOnly",
+        "default": "true"
+      }
+    }
+  },
+  "Extrusion": {
+    "containerField": "geometry",
+    "fields": {
+      "beginCap": {
+        "type": "SFBool",
+        "accessType": "initializeOnly",
+        "default": "true"
+      },
+      "ccw": {
+        "type": "SFBool",
+        "accessType": "initializeOnly",
+        "default": "true"
+      },
+      "class": {
+        "type": "SFString",
+        "accessType": "inputOutput"
+      },
+      "convex": {
+        "type": "SFBool",
+        "accessType": "initializeOnly",
+        "default": "true"
+      },
+      "creaseAngle": {
+        "type": "SFFloat",
+        "accessType": "initializeOnly",
+        "default": "0"
+      },
+      "crossSection": {
+        "type": "MFVec2f",
+        "accessType": "initializeOnly",
+        "default": "1 1 1 -1 -1 -1 -1 1 1 1"
+      },
+      "endCap": {
+        "type": "SFBool",
+        "accessType": "initializeOnly",
+        "default": "true"
+      },
+      "metadata": {
+        "type": "SFNode",
+        "accessType": "inputOutput",
+        "default": "NULL"
+      },
+      "orientation": {
+        "type": "MFRotation",
+        "accessType": "initializeOnly",
+        "default": "0 0 1 0"
+      },
+      "scale": {
+        "type": "MFVec2f",
+        "accessType": "initializeOnly",
+        "default": "1 1"
+      },
+      "solid": {
+        "type": "SFBool",
+        "accessType": "initializeOnly",
+        "default": "true"
+      },
+      "spine": {
+        "type": "MFVec3f",
+        "accessType": "initializeOnly",
+        "default": "0 0 0 0 1 0"
+      }
+    }
+  },
+  "IndexedLineSet": {
+    "containerField": "geometry",
+    "fields": {
+      "attrib": {
+        "type": "MFNode",
+        "accessType": "inputOutput"
+      },
+      "class": {
+        "type": "SFString",
+        "accessType": "inputOutput"
+      },
+      "color": {
+        "type": "SFNode",
+        "accessType": "inputOutput",
+        "default": "NULL"
+      },
+      "colorIndex": {
+        "type": "MFInt32",
+        "accessType": "initializeOnly"
+      },
+      "colorPerVertex": {
+        "type": "SFBool",
+        "accessType": "initializeOnly",
+        "default": "true"
+      },
+      "coord": {
+        "type": "SFNode",
+        "accessType": "inputOutput",
+        "default": "NULL"
+      },
+      "coordIndex": {
+        "type": "MFInt32",
+        "accessType": "initializeOnly"
+      },
+      "fogCoord": {
+        "type": "SFNode",
+        "accessType": "inputOutput",
+        "default": "NULL"
+      },
+      "metadata": {
+        "type": "SFNode",
+        "accessType": "inputOutput",
+        "default": "NULL"
+      }
+    }
+  },
+  "IntegerSequencer": {
+    "containerField": "children",
+    "fields": {
+      "class": {
+        "type": "SFString",
+        "accessType": "inputOutput"
+      },
+      "key": {
+        "type": "MFFloat",
+        "accessType": "inputOutput"
+      },
+      "keyValue": {
+        "type": "MFInt32",
+        "accessType": "inputOutput"
+      },
+      "metadata": {
+        "type": "SFNode",
+        "accessType": "inputOutput",
+        "default": "NULL"
+      }
+    }
+  },
+  "LOD": {
+    "containerField": "children",
+    "fields": {
+      "bboxCenter": {
+        "type": "SFVec3f",
+        "accessType": "initializeOnly",
+        "default": "0 0 0"
+      },
+      "bboxSize": {
+        "type": "SFVec3f",
+        "accessType": "initializeOnly",
+        "default": "-1 -1 -1"
+      },
+      "center": {
+        "type": "SFVec3f",
+        "accessType": "initializeOnly",
+        "default": "0 0 0"
+      },
+      "children": {
+        "type": "MFNode",
+        "accessType": "inputOutput"
+      },
+      "class": {
+        "type": "SFString",
+        "accessType": "inputOutput"
+      },
+      "forceTransitions": {
+        "type": "SFBool",
+        "accessType": "initializeOnly",
+        "default": "false"
+      },
+      "metadata": {
+        "type": "SFNode",
+        "accessType": "inputOutput",
+        "default": "NULL"
+      },
+      "range": {
+        "type": "MFFloat",
+        "accessType": "initializeOnly"
+      }
+    }
+  },
+  "NavigationInfo": {
+    "containerField": "children",
+    "fields": {
+      "avatarSize": {
+        "type": "MFFloat",
+        "accessType": "inputOutput",
+        "default": "0.25 1.6 0.75"
+      },
+      "class": {
+        "type": "SFString",
+        "accessType": "inputOutput"
+      },
+      "headlight": {
+        "type": "SFBool",
+        "accessType": "inputOutput",
+        "default": "true"
+      },
+      "metadata": {
+        "type": "SFNode",
+        "accessType": "inputOutput",
+        "default": "NULL"
+      },
+      "speed": {
+        "type": "SFFloat",
+        "accessType": "inputOutput",
+        "default": "1"
+      },
+      "transitionTime": {
+        "type": "SFTime",
+        "accessType": "inputOutput",
+        "default": "1.0"
+      },
+      "transitionType": {
+        "type": "MFString",
+        "accessType": "inputOutput",
+        "default": "\"LINEAR\""
+      },
+      "type": {
+        "type": "MFString",
+        "accessType": "inputOutput",
+        "default": "\"EXAMINE\" \"ANY\""
+      },
+      "visibilityLimit": {
+        "type": "SFFloat",
+        "accessType": "inputOutput",
+        "default": "0"
+      }
+    }
+  },
+  "PixelTexture": {
+    "containerField": "texture",
+    "fields": {
+      "class": {
+        "type": "SFString",
+        "accessType": "inputOutput"
+      },
+      "image": {
+        "type": "SFImage",
+        "accessType": "inputOutput",
+        "default": "0 0 0"
+      },
+      "metadata": {
+        "type": "SFNode",
+        "accessType": "inputOutput",
+        "default": "NULL"
+      },
+      "repeatS": {
+        "type": "SFBool",
+        "accessType": "initializeOnly",
+        "default": "true"
+      },
+      "repeatT": {
+        "type": "SFBool",
+        "accessType": "initializeOnly",
+        "default": "true"
+      },
+      "textureProperties": {
+        "type": "SFNode",
+        "accessType": "initializeOnly",
+        "default": "NULL"
+      }
+    }
+  },
+  "PositionInterpolator": {
+    "containerField": "children",
+    "fields": {
+      "class": {
+        "type": "SFString",
+        "accessType": "inputOutput"
+      },
+      "key": {
+        "type": "MFFloat",
+        "accessType": "inputOutput"
+      },
+      "keyValue": {
+        "type": "MFVec3f",
+        "accessType": "inputOutput"
+      },
+      "metadata": {
+        "type": "SFNode",
+        "accessType": "inputOutput",
+        "default": "NULL"
+      }
+    }
+  },
+  "TextureTransform": {
+    "containerField": "textureTransform",
+    "fields": {
+      "center": {
+        "type": "SFVec2f",
+        "accessType": "inputOutput",
+        "default": "0 0"
+      },
+      "class": {
+        "type": "SFString",
+        "accessType": "inputOutput"
+      },
+      "metadata": {
+        "type": "SFNode",
+        "accessType": "inputOutput",
+        "default": "NULL"
+      },
+      "rotation": {
+        "type": "SFFloat",
+        "accessType": "inputOutput",
+        "default": "0"
+      },
+      "scale": {
+        "type": "SFVec2f",
+        "accessType": "inputOutput",
+        "default": "1 1"
+      },
+      "translation": {
+        "type": "SFVec2f",
+        "accessType": "inputOutput",
+        "default": "0 0"
+      }
+    }
+  },
+  "DirectionalLight": {
+    "containerField": "children",
+    "fields": {
+      "ambientIntensity": {
+        "type": "SFFloat",
+        "accessType": "inputOutput",
+        "default": "0"
+      },
+      "class": {
+        "type": "SFString",
+        "accessType": "inputOutput"
+      },
+      "color": {
+        "type": "SFColor",
+        "accessType": "inputOutput",
+        "default": "1 1 1"
+      },
+      "direction": {
+        "type": "SFVec3f",
+        "accessType": "inputOutput",
+        "default": "0 0 -1"
+      },
+      "global": {
+        "type": "SFBool",
+        "accessType": "inputOutput",
+        "default": "false"
+      },
+      "intensity": {
+        "type": "SFFloat",
+        "accessType": "inputOutput",
+        "default": "1"
+      },
+      "metadata": {
+        "type": "SFNode",
+        "accessType": "inputOutput",
+        "default": "NULL"
+      },
+      "on": {
+        "type": "SFBool",
+        "accessType": "inputOutput",
+        "default": "true"
+      },
+      "shadowIntensity": {
+        "type": "SFFloat",
+        "accessType": "inputOutput",
+        "default": "1",
+        "since": "4.0"
+      },
+      "shadows": {
+        "type": "SFBool",
+        "accessType": "inputOutput",
+        "default": "false",
+        "since": "4.0"
+      }
+    }
+  },
+  "PointLight": {
+    "containerField": "children",
+    "fields": {
+      "ambientIntensity": {
+        "type": "SFFloat",
+        "accessType": "inputOutput",
+        "default": "0"
+      },
+      "attenuation": {
+        "type": "SFVec3f",
+        "accessType": "inputOutput",
+        "default": "1 0 0"
+      },
+      "class": {
+        "type": "SFString",
+        "accessType": "inputOutput"
+      },
+      "color": {
+        "type": "SFColor",
+        "accessType": "inputOutput",
+        "default": "1 1 1"
+      },
+      "global": {
+        "type": "SFBool",
+        "accessType": "inputOutput",
+        "default": "true"
+      },
+      "intensity": {
+        "type": "SFFloat",
+        "accessType": "inputOutput",
+        "default": "1"
+      },
+      "location": {
+        "type": "SFVec3f",
+        "accessType": "inputOutput",
+        "default": "0 0 0"
+      },
+      "metadata": {
+        "type": "SFNode",
+        "accessType": "inputOutput",
+        "default": "NULL"
+      },
+      "on": {
+        "type": "SFBool",
+        "accessType": "inputOutput",
+        "default": "true"
+      },
+      "radius": {
+        "type": "SFFloat",
+        "accessType": "inputOutput",
+        "default": "100"
+      },
+      "shadowIntensity": {
+        "type": "SFFloat",
+        "accessType": "inputOutput",
+        "default": "1",
+        "since": "4.0"
+      },
+      "shadows": {
+        "type": "SFBool",
+        "accessType": "inputOutput",
+        "default": "false",
+        "since": "4.0"
+      }
+    }
+  },
+  "SpotLight": {
+    "containerField": "children",
+    "fields": {
+      "ambientIntensity": {
+        "type": "SFFloat",
+        "accessType": "inputOutput",
+        "default": "0"
+      },
+      "attenuation": {
+        "type": "SFVec3f",
+        "accessType": "inputOutput",
+        "default": "1 0 0"
+      },
+      "beamWidth": {
+        "type": "SFFloat",
+        "accessType": "inputOutput",
+        "default": "0.7854",
+        "default40": "0.589049"
+      },
+      "class": {
+        "type": "SFString",
+        "accessType": "inputOutput"
+      },
+      "color": {
+        "type": "SFColor",
+        "accessType": "inputOutput",
+        "default": "1 1 1"
+      },
+      "cutOffAngle": {
+        "type": "SFFloat",
+        "accessType": "inputOutput",
+        "default": "1.570796"
+      },
+      "direction": {
+        "type": "SFVec3f",
+        "accessType": "inputOutput",
+        "default": "0 0 -1"
+      },
+      "global": {
+        "type": "SFBool",
+        "accessType": "inputOutput",
+        "default": "true"
+      },
+      "intensity": {
+        "type": "SFFloat",
+        "accessType": "inputOutput",
+        "default": "1"
+      },
+      "location": {
+        "type": "SFVec3f",
+        "accessType": "inputOutput",
+        "default": "0 0 0"
+      },
+      "metadata": {
+        "type": "SFNode",
+        "accessType": "inputOutput",
+        "default": "NULL"
+      },
+      "on": {
+        "type": "SFBool",
+        "accessType": "inputOutput",
+        "default": "true"
+      },
+      "radius": {
+        "type": "SFFloat",
+        "accessType": "inputOutput",
+        "default": "100"
+      },
+      "shadowIntensity": {
+        "type": "SFFloat",
+        "accessType": "inputOutput",
+        "default": "1",
+        "since": "4.0"
+      },
+      "shadows": {
+        "type": "SFBool",
+        "accessType": "inputOutput",
+        "default": "false",
+        "since": "4.0"
+      }
+    }
+  },
+  "OrthoViewpoint": {
+    "containerField": "children",
+    "fields": {
+      "centerOfRotation": {
+        "type": "SFVec3f",
+        "accessType": "inputOutput",
+        "default": "0 0 0"
+      },
+      "class": {
+        "type": "SFString",
+        "accessType": "inputOutput"
+      },
+      "description": {
+        "type": "SFString",
+        "accessType": "inputOutput"
+      },
+      "fieldOfView": {
+        "type": "MFFloat",
+        "accessType": "inputOutput",
+        "default": "-1 -1 1 1"
+      },
+      "jump": {
+        "type": "SFBool",
+        "accessType": "inputOutput",
+        "default": "true"
+      },
+      "metadata": {
+        "type": "SFNode",
+        "accessType": "inputOutput",
+        "default": "NULL"
+      },
+      "orientation": {
+        "type": "SFRotation",
+        "accessType": "inputOutput",
+        "default": "0 0 1 0"
+      },
+      "position": {
+        "type": "SFVec3f",
+        "accessType": "inputOutput",
+        "default": "0 0 10"
+      },
+      "retainUserOffsets": {
+        "type": "SFBool",
+        "accessType": "inputOutput",
+        "default": "false"
+      }
+    }
   }
 } as const;
-export type CatalogNodeName = keyof typeof catalog;

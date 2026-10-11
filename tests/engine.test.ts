@@ -52,6 +52,7 @@ describe('safe deterministic semantic subset',()=>{
   it('fails malformed XML without a partial semantic report',()=>{
     const r=compareX3D(scene('<Shape>'),scene('<Shape/>'));
     expect(r.summary.status).toBe('failed');expect(r.changes).toHaveLength(0);
+    expect(r.diagnostics.map(d=>d.code)).not.toContain('VERSION_UNSUPPORTED');
   });
   it('keeps an unknown field opaque instead of reporting a trusted typed edit',()=>{
     const a=scene('<Box experimentalValue="one"/>');
