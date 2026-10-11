@@ -1,69 +1,21 @@
 import type { ChangeRecord, X3DiffReport } from '../report/schema';
+import {
+  AXIS_FIELDS,
+  booleanWord,
+  buildRegister,
+  compact,
+  compactAgainst,
+  foldGroup,
+  number,
+  partLabel,
+  propertyLabel,
+  type ChangeBundle,
+  type ChangeFold,
+  type SceneNameSources,
+} from '../report/presentation';
 
-export const categoryNames: Record<string, string> = {
-  geometry: 'Geometry',
-  material: 'Material',
-  appearance: 'Appearance',
-  transform: 'Transform',
-  structure: 'Structure',
-  metadata: 'Metadata',
-  document: 'Document',
-  animation: 'Animation',
-  behavior: 'Animation',
-  interaction: 'Interaction',
-};
-const fieldNames: Record<string, string> = {
-  point: 'Coordinates',
-  radius: 'Radius',
-  diffuseColor: 'Diffuse color',
-  emissiveColor: 'Emissive color',
-  translation: 'Translation',
-  rotation: 'Rotation',
-  scale: 'Scale',
-  size: 'Dimensions',
-  title: 'Title',
-  cycleInterval: 'Cycle duration (s)',
-};
-function objectPath(change: ChangeRecord): string | undefined {
-  const path = change.afterNode?.path ?? change.beforeNode?.path;
-  if (!path) return undefined;
-  const parts = path.split('/');
-  // A Transform owns its visual descendants. Without one, the nearest Shape
-  // owns the geometry and appearance changes beneath it.
-  for (const type of ['Transform', 'Shape']) {
-    for (let index = parts.length - 1; index >= 0; index--) {
-      if (parts[index].startsWith(`${type}[`)) return parts.slice(0, index + 1).join('/');
-    }
-  }
-  return path;
-}
-function objectLabel(path: string, changes: ChangeRecord[]): string {
-  const owner = changes
-    .flatMap((change) => [change.afterNode, change.beforeNode])
-    .find((node) => node?.path === path && node.defName);
-  if (owner?.defName) return owner.defName;
-  const part = path.split('/').at(-1) ?? 'Scene';
-  return part.replace(/\[(\d+)\]/, ' $1');
-}
-const number = (v: number) => (Number.isInteger(v) ? String(v) : String(Number(v.toPrecision(5))));
-function compact(value: unknown): string {
-  if (value === undefined) return '—';
-  if (typeof value === 'number') return number(value);
-  if (typeof value === 'string') return value;
-  if (Array.isArray(value)) {
-    if (value.length > 9) return `${value.length} values`;
-    return value
-      .map((v) =>
-        Array.isArray(v)
-          ? v.map((n) => (typeof n === 'number' ? number(n) : String(n))).join(', ')
-          : typeof v === 'number'
-            ? number(v)
-            : String(v),
-      )
-      .join(' · ');
-  }
-  return JSON.stringify(value);
-}
+export { categoryLabel, categoryNames } from '../report/presentation';
+
 function valueCell(change: ChangeRecord, side: 'before' | 'after'): HTMLTableCellElement {
   const td = document.createElement('td');
   td.className = `revision-value ${side}`;
@@ -101,7 +53,9 @@ function valueCell(change: ChangeRecord, side: 'before' | 'after'): HTMLTableCel
     if (!td.childNodes.length) td.textContent = 'Unchanged';
     return td;
   }
-  let label = compact(value);
+  const other = change[side === 'before' ? 'after' : 'before']?.value;
+  // Enough digits for a small change to show: "2 → 2.000004", never "2 → 2".
+  let label = booleanWord(change, value) ?? compactAgainst(value, other);
   if (change.field === 'point' && change.totalPoints)
     label = side === 'before' ? `${change.totalPoints} points` : `${change.movedPoints} moved`;
   if (change.kind === 'nodeRenamed')
@@ -118,14 +72,13 @@ function valueCell(change: ChangeRecord, side: 'before' | 'after'): HTMLTableCel
     td.append(swatch);
   }
   const text = document.createElement('span');
-  const other = change[side === 'before' ? 'after' : 'before']?.value;
-  const axes = ['translation', 'scale', 'size'].includes(change.field ?? '');
+  const axes = AXIS_FIELDS.includes(change.field ?? '');
   if (axes && Array.isArray(value) && value.length === 3) {
     value.forEach((component, i) => {
       const axis = document.createElement('span');
       axis.className = 'vector-component';
       if (Array.isArray(other) && component !== other[i]) axis.classList.add('component-changed');
-      axis.textContent = `${['X', 'Y', 'Z'][i]} ${compact(component)}`;
+      axis.textContent = `${['X', 'Y', 'Z'][i]} ${compactAgainst(component, Array.isArray(other) ? other[i] : undefined)}`;
       if (
         side === 'after' &&
         Array.isArray(other) &&
@@ -200,16 +153,10 @@ export function renderRegister(
   report: X3DiffReport,
   category: string,
   select: (change: ChangeRecord, group?: ChangeRecord[], label?: string) => void,
+  names: SceneNameSources = {},
 ): void {
   container.replaceChildren();
-  const records = report.changes
-    .filter((c) => category === 'all' || c.category === category)
-    .slice()
-    .sort(
-      (a, b) =>
-        Number(['metadata', 'document'].includes(a.category)) -
-        Number(['metadata', 'document'].includes(b.category)),
-    );
+  const records = report.changes.filter((c) => category === 'all' || c.category === category);
   if (!records.length) {
     const empty = document.createElement('p');
     empty.className = 'empty-state';
@@ -217,7 +164,9 @@ export function renderRegister(
       ? 'No changes in this category.'
       : report.summary.status === 'complete'
         ? 'No supported differences at the current tolerances.'
-        : 'No differences reported. Review the comparison limitations.';
+        : report.summary.status === 'incomplete'
+          ? 'No differences found in the content that was compared. This is not a full check: the skipped parts are listed above.'
+          : 'No differences reported. Review the comparison limitations.';
     container.append(empty);
     return;
   }
@@ -225,15 +174,8 @@ export function renderRegister(
   table.className = 'change-table';
   table.innerHTML =
     '<caption class="sr-only">Before and after values. Select an object to highlight it in the scene.</caption><thead><tr><th scope="col">Object / property</th><th scope="col">Before</th><th scope="col">After</th></tr></thead>';
-  const groups = new Map<string, ChangeRecord[]>();
-  for (const change of records) {
-    const node = change.afterNode ?? change.beforeNode;
-    const key = node ? `${node.scopePath}|${objectPath(change)}` : 'scene';
-    const group = groups.get(key) ?? [];
-    group.push(change);
-    groups.set(key, group);
-  }
-  const collapseLargeReport = groups.size > 12;
+  const entries = buildRegister(records, names);
+  const collapseLargeReport = entries.length > 12;
   const markSelected = (
     table: HTMLTableElement,
     row: HTMLTableRowElement,
@@ -249,12 +191,110 @@ export function renderRegister(
     button?.setAttribute('aria-pressed', 'true');
   };
   let index = 0;
-  for (const [key, changes] of groups) {
+  /** Objects that changed in exactly the same way: one line, opened on request. */
+  const bundleBody = (bundle: ChangeBundle) => {
     const body = document.createElement('tbody');
+    body.className = 'object-group change-bundle';
+    body.id = `change-group-${index}`;
+    const header = document.createElement('tr');
+    header.className = 'group-heading bundle-heading';
+    const cell = document.createElement('th');
+    cell.colSpan = 3;
+    cell.scope = 'rowgroup';
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'bundle-toggle';
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-controls', body.id);
+    const chevron = document.createElement('span');
+    chevron.className = 'group-chevron';
+    chevron.setAttribute('aria-hidden', 'true');
+    const words = document.createElement('span');
+    words.className = 'bundle-words';
+    const title = document.createElement('strong');
+    title.textContent = bundle.label;
+    const count = document.createElement('span');
+    count.className = 'group-count';
+    count.textContent = `${bundle.changes.length} differences`;
+    const description = document.createElement('span');
+    description.className = 'bundle-description';
+    description.textContent = bundle.description;
+    words.append(title, count, description);
+    toggle.append(chevron, words);
+    cell.append(toggle);
+    header.append(cell);
+    body.append(header);
+    // The values are the same for every object, so they are listed once.
+    const sample = bundle.groups[0];
+    for (const change of sample.changes) {
+      const row = document.createElement('tr');
+      row.className = 'bundle-values';
+      row.hidden = true;
+      const heading = document.createElement('th');
+      heading.scope = 'row';
+      const node = change.afterNode ?? change.beforeNode;
+      heading.textContent = `${sample.nameNodes ? `${node?.nodeType ?? 'Scene'} · ` : ''}${propertyLabel(change)} · each of ${bundle.groups.length}`;
+      row.append(heading, valueCell(change, 'before'), valueCell(change, 'after'));
+      body.append(row);
+    }
+    for (const group of bundle.groups) {
+      const row = document.createElement('tr');
+      row.className = 'bundle-member';
+      row.hidden = true;
+      const heading = document.createElement('th');
+      heading.colSpan = 3;
+      heading.scope = 'row';
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'object-link';
+      button.title = `Highlight ${group.label} in the scene`;
+      button.setAttribute('aria-pressed', 'false');
+      const sequence = document.createElement('span');
+      sequence.className = 'row-index';
+      const first = index + 1;
+      index += group.changes.length;
+      sequence.textContent =
+        group.changes.length > 1
+          ? `${String(first).padStart(2, '0')}–${String(index).padStart(2, '0')}`
+          : String(first).padStart(2, '0');
+      const label = document.createElement('span');
+      const object = document.createElement('strong');
+      object.textContent = group.label;
+      label.append(object);
+      button.append(sequence, label);
+      row.addEventListener('click', () => {
+        markSelected(table, row, button);
+        select(group.changes[0], group.changes, group.label);
+      });
+      heading.append(button);
+      row.append(heading);
+      body.append(row);
+    }
+    toggle.addEventListener('click', () => {
+      const expanded = toggle.getAttribute('aria-expanded') !== 'true';
+      toggle.setAttribute('aria-expanded', String(expanded));
+      for (const row of Array.from(body.querySelectorAll('tr:not(.group-heading)')))
+        (row as HTMLTableRowElement).hidden = !expanded;
+    });
+    return body;
+  };
+  for (const entry of entries) {
+    if (entry.kind === 'bundle') {
+      table.append(bundleBody(entry));
+      continue;
+    }
+    const { label: name, changes, nameNodes } = entry;
+    const body = document.createElement('tbody');
+    // A row shows when its group is open and, inside a fold, when the fold is open too.
+    let groupOpen = !(changes.length > 1 && collapseLargeReport);
+    const plainRows: HTMLTableRowElement[] = [];
+    const folds: Array<{ open: boolean; rows: HTMLTableRowElement[] }> = [];
+    const sync = () => {
+      for (const row of plainRows) row.hidden = !groupOpen;
+      for (const fold of folds) for (const row of fold.rows) row.hidden = !groupOpen || !fold.open;
+    };
     if (changes.length > 1) {
       body.className = 'object-group';
-      const path = key.slice(key.indexOf('|') + 1);
-      const name = objectLabel(path, changes);
       const header = document.createElement('tr');
       header.className = 'group-heading';
       const cell = document.createElement('th');
@@ -292,10 +332,9 @@ export function renderRegister(
         select(changes[0], changes, name);
       });
       toggle.addEventListener('click', () => {
-        const expanded = toggle.getAttribute('aria-expanded') !== 'true';
-        toggle.setAttribute('aria-expanded', String(expanded));
-        for (const row of Array.from(body.querySelectorAll('tr:not(.group-heading)')))
-          (row as HTMLTableRowElement).hidden = !expanded;
+        groupOpen = toggle.getAttribute('aria-expanded') !== 'true';
+        toggle.setAttribute('aria-expanded', String(groupOpen));
+        sync();
       });
       const controls = document.createElement('div');
       controls.className = 'group-controls';
@@ -304,38 +343,23 @@ export function renderRegister(
       header.append(cell);
       body.append(header);
     }
-    const mixedNodes =
-      new Set(changes.map((change) => (change.afterNode ?? change.beforeNode)?.nodeType)).size > 1;
-    for (const change of changes) {
+    /** One change as its own row; `part` names the shape it sits in when the row is in a fold. */
+    const changeRows = (change: ChangeRecord, part?: string): HTMLTableRowElement[] => {
       const row = document.createElement('tr');
       row.className = 'change-row';
       row.dataset.category = change.category;
-      row.hidden = changes.length > 1 && collapseLargeReport;
       const heading = document.createElement('th');
       heading.scope = 'row';
       const button = document.createElement('button');
       button.className = 'object-link';
       const node = change.afterNode ?? change.beforeNode;
       const object = document.createElement('strong');
-      object.textContent = changes.length > 1 ? '' : (node?.defName ?? node?.nodeType ?? 'Scene');
+      object.textContent = changes.length > 1 ? '' : name;
       const property = document.createElement('span');
-      property.textContent =
-        change.kind === 'nodeAdded'
-          ? 'Object added'
-          : change.kind === 'nodeRemoved'
-            ? 'Object removed'
-            : change.kind === 'nodeRenamed'
-              ? 'Identifier'
-              : change.message === 'Profile changed'
-                ? 'Profile'
-                : change.message === 'Document META changed'
-                  ? 'Metadata fields'
-                  : (fieldNames[change.field ?? ''] ??
-                    change.field ??
-                    categoryNames[change.category] ??
-                    change.category);
-      if (changes.length > 1 && mixedNodes)
-        property.textContent = `${node?.nodeType ?? 'Scene'} · ${property.textContent}`;
+      property.textContent = propertyLabel(change);
+      // The object's name does not always say which of its nodes the row is about.
+      const own = part ?? (node?.defName && node.defName !== name ? node.defName : node?.nodeType);
+      if (nameNodes || part) property.textContent = `${own ?? 'Scene'} · ${property.textContent}`;
       const sequence = document.createElement('span');
       sequence.className = 'row-index';
       sequence.textContent = String(++index).padStart(2, '0');
@@ -346,14 +370,11 @@ export function renderRegister(
         const badge = document.createElement('span');
         badge.className = `change-action ${change.kind === 'nodeAdded' ? 'added' : 'removed'}`;
         badge.textContent = change.kind === 'nodeAdded' ? '+ Added' : '− Removed';
-        if (changes.length > 1 && mixedNodes)
-          property.append(
-            document.createTextNode(`${node?.defName ?? node?.nodeType ?? 'Scene'} · `),
-          );
+        if (nameNodes) property.append(document.createTextNode(`${own ?? 'Scene'} · `));
         property.append(badge);
       }
       button.append(sequence, words);
-      button.title = `Highlight ${node?.defName ?? node?.nodeType ?? 'Scene'} in the scene`;
+      button.title = `Highlight ${changes.length > 1 ? (own ?? name) : name} in the scene`;
       const selectRow = () => {
         markSelected(table, row, button);
         select(change);
@@ -365,11 +386,12 @@ export function renderRegister(
       heading.append(button);
       row.append(heading, valueCell(change, 'before'), valueCell(change, 'after'));
       body.append(row);
+      const rows = [row];
       if (change.field === 'point' && change.totalPoints) {
         const detail = document.createElement('tr');
         detail.className = 'coordinate-detail';
         detail.addEventListener('click', selectRow);
-        detail.hidden = row.hidden;
+        rows.push(detail);
         const cell = document.createElement('td');
         cell.colSpan = 3;
         const track = document.createElement('div');
@@ -383,7 +405,52 @@ export function renderRegister(
         detail.append(cell);
         body.append(detail);
       }
-    }
+      return rows;
+    };
+    /** Identical changes inside this object: one closed line, with every change behind it. */
+    const foldRows = (item: ChangeFold) => {
+      const fold = { open: false, rows: [] as HTMLTableRowElement[] };
+      folds.push(fold);
+      const header = document.createElement('tr');
+      header.className = 'fold-heading';
+      const cell = document.createElement('th');
+      cell.colSpan = 3;
+      cell.scope = 'row';
+      const toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'bundle-toggle fold-toggle';
+      toggle.setAttribute('aria-expanded', 'false');
+      const chevron = document.createElement('span');
+      chevron.className = 'group-chevron';
+      chevron.setAttribute('aria-hidden', 'true');
+      const words = document.createElement('span');
+      words.className = 'bundle-words';
+      const title = document.createElement('strong');
+      title.textContent = item.label;
+      const count = document.createElement('span');
+      count.className = 'group-count';
+      count.textContent = `${item.changes.length} differences`;
+      const description = document.createElement('span');
+      description.className = 'bundle-description';
+      description.textContent = item.description;
+      words.append(title, count, description);
+      toggle.append(chevron, words);
+      toggle.addEventListener('click', () => {
+        fold.open = !fold.open;
+        toggle.setAttribute('aria-expanded', String(fold.open));
+        sync();
+      });
+      cell.append(toggle);
+      header.append(cell);
+      body.append(header);
+      plainRows.push(header);
+      for (const change of item.changes)
+        fold.rows.push(...changeRows(change, partLabel(change, names)));
+    };
+    for (const item of foldGroup(entry))
+      if (item.kind === 'fold') foldRows(item);
+      else plainRows.push(...changeRows(item.change));
+    sync();
     table.append(body);
   }
   container.append(table);

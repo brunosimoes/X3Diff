@@ -1,20 +1,36 @@
 import type { AnalysisPair } from '../viewer/analysisGeometry';
 import { SurfaceAnalysis } from './surfaceAnalysis';
+import { MotionAnalysis } from './motionAnalysis';
 import { AnalysisTabs } from './analysisTabs';
 import { LinkedSections } from './linkedSections';
 import { DEFAULT_TOLERANCE } from '../diff/tolerance';
+import { LIGHTS } from '../x3d/lights';
 import { ComparisonClient } from '../diff/workerClient';
 import { readInput } from '../x3d/readInput';
 import { exportReportJson } from '../report/export-json';
+import {
+  coverageLines,
+  describeCoverage,
+  describeDiagnostic,
+  type Coverage,
+} from '../report/coverage';
+import { exportReportHtml } from '../report/export-html';
+import { exportFileName } from '../report/fileNames';
+import { VOLUME_LIMITS, VOLUME_SHORT, limitsMarkup } from '../report/limits';
+import { gatherAnalysisFacts } from './analysisFacts';
 import type { X3DiffReport, ChangeRecord } from '../report/schema';
 import type { SolidRegionsResult } from '../viewer/solidRegions';
 import { X3DPane } from '../viewer/X3DPane';
 import { buildDiffScene, type DiffSceneResult } from '../viewer/diffScene';
-import { categoryNames, renderRegister } from './changeRegister';
-import { readPreferences, savePreferences } from './preferences';
+import { categoryLabel, renderRegister } from './changeRegister';
+import { summarizeChanges, type SceneNameSources } from '../report/presentation';
+import { sceneNames } from '../report/sceneNames';
+import { prescan } from '../x3d/prescan';
+import { initialTheme, readPreferences, savePreferences } from './preferences';
 import { updateObjectChoice } from './objectChoice';
 import { renderVolumeSummary, volumeMethod } from './volumeSummary';
 import { affectsShape } from '../viewer/shapeGeometry';
+import { planDrop, type Side } from './dropFiles';
 import './style.css';
 
 const icon = {
@@ -29,12 +45,67 @@ const icon = {
   settings:
     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 2h4l.5 2.3 1.7.8 2.1-1.1 2.8 2.8-1.1 2.1.8 1.7L23 11v4l-2.3.5-.8 1.7 1.1 2.1-2.8 2.8-2.1-1.1-1.7.8L14 24h-4l-.5-2.3-1.7-.8-2.1 1.1-2.8-2.8 1.1-2.1-.8-1.7L1 15v-4l2.3-.5.8-1.7L3 6.7l2.8-2.8 2.1 1.1 1.7-.8L10 2Z" transform="translate(0 -1) scale(1 .92)"/><circle cx="12" cy="12" r="3"/></svg>',
 };
+/** One row per bundled example: menu entry, files and input names. */
+interface Demo {
+  label: string;
+  hint: string;
+  names: [string, string];
+  load: () => Promise<string[]>;
+  /** Animated showcase: the Before and After views get a play/pause control. */
+  showcase?: boolean;
+}
+const examplePair = (before: string, after: string) => async () => {
+  const responses = await Promise.all(
+    [before, after].map((file) => fetch(`${import.meta.env.BASE_URL}examples/${file}`)),
+  );
+  if (responses.some((r) => !r.ok)) throw new Error('Example files are unavailable.');
+  return Promise.all(responses.map((r) => r.text()));
+};
+const showcaseDemo = (id: string, label: string, hint: string): Demo => ({
+  label,
+  hint,
+  names: [`${label} · original`, `${label} · revised`],
+  load: examplePair(`${id}/before.x3d`, `${id}/after.x3d`),
+  showcase: true,
+});
+const demos: Record<string, Demo> = {
+  brickhaven: showcaseDemo('brickhaven', 'Brickhaven', 'Animated town'),
+  forgeworks: showcaseDemo('forgeworks', 'Forgeworks', 'Vehicle assembly'),
+  fitlab: showcaseDemo('fitlab', 'Fit Lab', 'Volume comparison'),
+  example: {
+    label: 'Objects',
+    hint: 'Simple revisions',
+    names: ['Objects · original', 'Objects · revised'],
+    load: examplePair('HelloWorld.x3d', 'HelloWorld-edited.x3d'),
+  },
+  dolphin: {
+    label: 'Dolphin',
+    hint: 'Mesh deformation',
+    names: ['Dolphin · neutral pose', 'Dolphin · curved pose'],
+    load: async () =>
+      (
+        await Promise.all([
+          import('../../fixtures/dolphin/before.x3d?raw'),
+          import('../../fixtures/dolphin/after.x3d?raw'),
+        ])
+      ).map((file) => file.default),
+  },
+};
 const root = document.querySelector<HTMLDivElement>('#app')!;
 root.innerHTML = `
 <main class="shell">
   <header class="masthead">
     <div class="brand"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M6 11 20 3 34 11 34 29 20 37 6 29Z"/><path d="m6 11 14 8 14-8M20 19v18M13 7l14 8v9l-7 4-7-4v-9l14-8"/></svg><span>X3<span class="brand-light">Diff</span></span></div>
-    <div class="header-tools"><a class="button quiet" href="./" aria-label="About X3Diff">About</a><div class="demo-picker"><button id="demo-trigger" class="button quiet" aria-haspopup="menu" aria-controls="demo-menu" aria-expanded="false">Examples <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7.5 5 5 5-5"/></svg></button><div id="demo-menu" role="menu" hidden><button role="menuitem" data-demo="brickhaven">Brickhaven <small>Animated town</small></button><button role="menuitem" data-demo="forgeworks">Forgeworks <small>Vehicle assembly</small></button><button role="menuitem" data-demo="fitlab">Fit Lab <small>Volume comparison</small></button><button role="menuitem" data-demo="example">Objects <small>Simple revisions</small></button><button role="menuitem" data-demo="dolphin">Dolphin <small>Mesh deformation</small></button></div></div><button id="theme" class="button quiet" aria-label="Dark mode" aria-pressed="false">Dark mode</button></div>
+    <div class="header-tools"><a class="button quiet" href="./" aria-label="About X3Diff">About</a><div class="demo-picker"><button id="demo-trigger" class="button quiet" aria-haspopup="menu" aria-controls="demo-menu" aria-expanded="false">Examples <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7.5 5 5 5-5"/></svg></button><div id="demo-menu" role="menu" hidden>${Object.entries(
+      demos,
+    )
+      .map(
+        ([id, demo]) =>
+          `<button role="menuitem" data-demo="${id}">${demo.label} <small>${demo.hint}</small></button>`,
+      )
+      .join(
+        '',
+      )}</div></div><button id="theme" class="button quiet" aria-label="Dark mode" aria-pressed="false">Dark mode</button></div>
   </header>
   <div id="global-status" class="status" role="status"></div>
   <section class="review-workspace" aria-label="Revision review">
@@ -44,23 +115,27 @@ root.innerHTML = `
         <div class="scene-actions"><button id="compare" class="viewer-action" hidden>Cancel</button>
           <button id="fit" class="viewer-action" title="Fit scene to view" aria-label="Fit scene to view">${icon.fit}<span>Fit</span></button>
           <button id="motion" class="viewer-action" hidden>${icon.pause}<span>Pause</span></button><button id="expand" class="viewer-action" aria-pressed="false" title="Focus on the scene" aria-label="Focus on the scene" hidden>${icon.focus}<span>Focus</span></button>
-          <div class="settings-anchor"><button id="settings-trigger" class="viewer-action" title="Scene settings" aria-label="Scene settings" aria-expanded="false" aria-controls="settings-panel" aria-haspopup="dialog">${icon.settings}<span>Settings</span></button><section id="settings-panel" role="dialog" aria-label="Scene settings" hidden><div class="settings-head"><strong>Settings</strong><button id="settings-close" type="button" aria-label="Close settings">×</button></div><label for="tolerance">Point tolerance</label><div class="settings-input"><input id="tolerance" type="number" min="0" step="0.000001" value="0.00001"/><button id="apply-settings" class="button primary" disabled>Apply</button></div><p>Sets the threshold for moved coordinates.</p><label for="volume-resolution">Volume resolution</label><select id="volume-resolution" aria-describedby="volume-resolution-help"><option value="low">Low · faster</option><option value="medium">Medium</option><option value="high">High · smoother</option></select><p id="volume-resolution-help">Applies to Volume differences: curved-primitive detail and mesh sampling grid. High halves the mesh cell size versus Medium. Finer grids take longer; the main overlay keeps the original mesh.</p></section></div>
+          <div class="settings-anchor"><button id="settings-trigger" class="viewer-action" title="Scene settings" aria-label="Scene settings" aria-expanded="false" aria-controls="settings-panel" aria-haspopup="dialog">${icon.settings}<span>Settings</span></button><section id="settings-panel" role="dialog" aria-label="Scene settings" hidden><div class="settings-head"><strong>Settings</strong><button id="settings-close" type="button" aria-label="Close settings">×</button></div><label for="tolerance">Point tolerance</label><div class="settings-input"><input id="tolerance" type="number" min="0" step="any" value="${DEFAULT_TOLERANCE.vectorAbs}"/><button id="apply-settings" class="button primary">Apply</button></div><p>Sets the threshold for moved coordinates.</p><label for="volume-resolution">Volume resolution</label><select id="volume-resolution" aria-describedby="volume-resolution-help"><option value="low">Low · faster</option><option value="medium">Medium</option><option value="high">High · smoother</option></select><p id="volume-resolution-help">Applies to Volume differences: curved-primitive detail and mesh sampling grid. High halves the mesh cell size versus Medium. Finer grids take longer; the main overlay keeps the original mesh.</p></section></div>
         </div>
       </div>
-      <div class="viewers"><div id="viewer-before" hidden></div><div id="viewer-diff"></div><div id="viewer-after" hidden></div></div>
+      <div class="viewers"><div id="stage-empty" class="stage-empty"><div><h2>Compare two X3D revisions</h2><p>Choose the original and the revised <code>.x3d</code> file, or drag them onto this area. Both are read in your browser; nothing is uploaded.</p><div class="stage-actions"><button type="button" class="stage-cta" data-load="before">Choose Before file…</button><button type="button" class="stage-cta" data-load="after">Choose After file…</button></div><p>No files to hand? <button type="button" class="stage-link" data-example="example">Open a small example</button></p></div></div><div id="stage-next" class="stage-next" hidden><p></p><button type="button" class="stage-cta" data-load="after">Choose After file…</button></div><div id="stage-busy" class="stage-busy" aria-hidden="true" hidden><i></i><span></span></div><div id="stage-drop" class="stage-drop" aria-hidden="true" hidden><div><strong>Drop .x3d files here</strong><span id="stage-drop-hint"></span></div></div><div id="viewer-before" hidden></div><div id="viewer-diff"></div><div id="viewer-after" hidden></div></div>
       <div class="scene-footer"><div id="legend" class="legend" aria-label="Scene legend"></div><span class="navigation-hint">Drag to rotate · Scroll to zoom</span></div>
       <p id="scene-note" class="scene-note"></p>
     </section>
     <aside class="analysis-panel" aria-label="Analysis" hidden>
+      <section id="incomplete-banner" class="incomplete-banner" role="note" aria-label="Incomplete comparison" hidden><strong>Incomplete comparison: some content was not compared</strong><p>The differences shown are real, but the parts listed here were skipped and may hide more. This is not a full check.</p><details open><summary>What was not compared</summary><ul id="incomplete-list"></ul></details></section>
       <div id="analysis-heading"></div>
       <section class="report-panel" aria-label="Change register" hidden>
-      <div class="register-heading"><div><h2>File differences <span id="change-count">—</span></h2></div><label class="category-control"><span class="sr-only">Category</span><select id="category" disabled><option value="all">All categories</option></select></label><span id="report-status" class="report-status"></span><button id="export" class="button quiet" disabled>Export ↗</button></div>
+      <div class="register-heading"><div><h2>File differences <span id="change-count">—</span></h2></div><label class="category-control"><span class="sr-only">Category</span><select id="category" disabled><option value="all">All categories</option></select></label><div class="export-picker"><button id="export" class="button quiet" type="button" aria-haspopup="menu" aria-controls="export-menu" aria-expanded="false" disabled>Export <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7.5 5 5 5-5"/></svg></button><div id="export-menu" role="menu" aria-label="Export" hidden><button type="button" role="menuitem" data-export="html">Report (HTML) <small>Readable page to print or attach</small></button><button type="button" role="menuitem" data-export="json">Data (JSON) <small>Every value, for tools</small></button></div></div></div>
+      <p class="coverage-line"><span id="report-status" class="report-status"></span><a id="coverage-link" class="coverage-link" href="${import.meta.env.BASE_URL}coverage.html" target="_blank" rel="noopener" title="Opens the list of compared node types in a new tab"></a></p>
+      <p id="register-summary" class="register-summary"></p>
       <div id="summary" class="summary-metrics"></div>
       <div id="changes" class="register-content"><div class="empty-state"><p>Choose two files or load an example.</p></div></div>
       <div class="selection-tools"><div id="selection" class="selection-note" aria-live="polite"></div><button id="focus-selection" class="button quiet" disabled>Focus selected</button></div>
       </section>
       <section id="linked-sections" hidden aria-label="Slice & measure"></section>
       <section id="surface-deviation" hidden></section>
+      <section id="motion-paths" hidden aria-label="Motion paths"></section>
       <section id="volume-overlap" hidden>
         <div class="volume-object-controls"><label>Object <select id="volume-object" aria-label="Volume object"></select></label><label>Resolution <select id="volume-detail" aria-label="Volume detail"><option value="low">Low · faster</option><option value="medium">Medium</option><option value="high">High · finer</option></select></label></div>
         <div class="volume-controls"><div id="region" class="segmented-control" role="group" aria-label="Volume regions"><button data-region="all">Combined</button><button data-region="before">Before only</button><button data-region="shared">Shared</button><button data-region="after">After only</button></div><button id="volume-fit" class="button quiet">Fit</button></div>
@@ -68,7 +143,7 @@ root.innerHTML = `
         <div id="volume-summary" aria-label="Volume measurements" hidden></div>
         <div class="volume-context-control"><label><input id="volume-context" type="checkbox" checked/> Show transparent object context</label><span>Volumes in scene units³</span></div>
         <div class="volume-frame"><div id="volume-viewer"></div><p id="volume-empty" role="status" hidden></p></div>
-        <p id="volume-method" class="volume-note"></p><p class="volume-note">World coordinates · Static geometry · No automatic alignment. Before/after-only regions describe occupied space, not objects removed or added. Equal lost and gained volume can indicate relocation.</p>
+        ${limitsMarkup(VOLUME_SHORT, VOLUME_LIMITS, '<p id="volume-method"></p>')}
       </section>
     </aside>
   </section>
@@ -78,6 +153,7 @@ root.innerHTML = `
 const el = <T extends HTMLElement>(selector: string) => root.querySelector<T>(selector)!;
 const linkedSections = new LinkedSections(el('#linked-sections'), selectAnalysisPair);
 const surfaceAnalysis = new SurfaceAnalysis(el('#surface-deviation'), selectAnalysisPair);
+const motionAnalysis = new MotionAnalysis(el('#motion-paths'));
 const analysisTabs = new AnalysisTabs(el('.analysis-panel'), el('#analysis-heading'));
 analysisTabs.register({
   id: 'differences',
@@ -85,7 +161,9 @@ analysisTabs.register({
   description: 'Inspect semantic changes and before/after values.',
   panel: el('.report-panel'),
   required: true,
-  available: () => !!report?.changes.length,
+  // An incomplete result still opens the register, so "nothing found" is never
+  // shown without the list of what was skipped.
+  available: () => !!report && (report.changes.length > 0 || partialResult()),
 });
 analysisTabs.register({
   id: 'sections',
@@ -111,6 +189,15 @@ analysisTabs.register({
   available: () => surfaceAnalysis.hasData,
   activate: () => surfaceAnalysis.activate(),
 });
+analysisTabs.register({
+  id: 'motion',
+  label: 'Motion paths',
+  description: 'See where animated objects travel in each revision and how far apart they are.',
+  panel: el('#motion-paths'),
+  available: () => motionAnalysis.hasData,
+  activate: () => motionAnalysis.activate(),
+  deactivate: () => motionAnalysis.deactivate(),
+});
 
 const beforePane = new X3DPane('Before revision'),
   afterPane = new X3DPane('After revision'),
@@ -121,14 +208,19 @@ el('#volume-fit').addEventListener('click', () => volumePane.refreshView(true));
 el('#viewer-before').append(beforePane.element);
 el('#viewer-after').append(afterPane.element);
 el('#viewer-diff').append(diffPane.element);
-let theme: 'light' | 'dark' = 'dark';
+// A first visit opens in the theme the landing page showed, so arriving from it is no jolt.
+let savedTheme: string | null = null;
 try {
-  const saved = localStorage.getItem('x3diff-theme');
-  if (saved === 'light' || saved === 'dark') theme = saved;
+  savedTheme = localStorage.getItem('x3diff-theme');
 } catch {}
+let theme = initialTheme(
+  savedTheme,
+  typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches,
+);
 function applyTheme() {
   document.documentElement.dataset.theme = theme;
-  el('#theme').textContent = theme === 'dark' ? '☀ Light mode' : '☾ Dark mode';
+  el('#theme').innerHTML =
+    `<span aria-hidden="true">${theme === 'dark' ? '☀' : '☾'}</span><span class="theme-label"> ${theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>`;
   el('#theme').setAttribute(
     'aria-label',
     theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode',
@@ -148,6 +240,23 @@ applyTheme();
 type Input = { name: string; text: string };
 let before: Input | undefined, after: Input | undefined, report: X3DiffReport | undefined;
 let visual: DiffSceneResult | undefined, solid: SolidRegionsResult | undefined;
+let coverage: Coverage | undefined;
+// Names for objects without a DEF, read from the two scenes of the current comparison.
+let objectNames: SceneNameSources = {};
+function readObjectNames(text: string) {
+  try {
+    // The same guard the preview applies before any XML reaches a parser.
+    if (prescan(text, 'before').length) return undefined;
+    const doc = new DOMParser().parseFromString(text, 'application/xml');
+    return doc.querySelector('parsererror') ? undefined : sceneNames(doc);
+  } catch {
+    return undefined;
+  }
+}
+/** Some content was compared and some was not: results are shown, marked as partial. */
+function partialResult() {
+  return !!coverage?.partial && !coverage.comparedNothing;
+}
 let revision = 0,
   view: 'before' | 'after' | 'diff' = 'diff',
   volumeRevision = 0;
@@ -165,22 +274,42 @@ function setVolumeResolution(value: string) {
 }
 volumeResolution.addEventListener('change', () => setVolumeResolution(volumeResolution.value));
 volumeDetail.addEventListener('change', () => setVolumeResolution(volumeDetail.value));
-let region = ['all', 'before', 'shared', 'after'].includes(preferences.region ?? '')
-  ? preferences.region!
-  : 'all';
+let region = preferences.region ?? 'all';
 const comparisons = new ComparisonClient();
 let comparing = false;
 let tolerance = { ...DEFAULT_TOLERANCE };
+// True while the loaded pair is a bundled example rather than the reviewer's own files.
+let fromExample = false;
 let showcase = false,
   motion = true;
 const fileRevisions = { before: 0, after: 0 };
-let demoRevision = 0;
+let demoRevision = 0,
+  demoPending = false;
 const status = (text: string, error = false) => {
   el('#global-status').textContent = text;
   el('#global-status').classList.toggle('error', error);
 };
+/** Centre-stage progress; the status line above carries the same text for assistive tech. */
+function stageBusy(text = '') {
+  el('#stage-busy').hidden = !text;
+  el('#stage-busy span').textContent = text;
+}
 function updateReady() {
-  el<HTMLButtonElement>('#apply-settings').disabled = !(before && after);
+  // The stage invites a first action until something is loaded or loading.
+  const empty = !before && !after && !demoPending;
+  el('#stage-empty').hidden = !empty;
+  el('.scene-footer').hidden = empty;
+  // With one side loaded, the next step sits on the stage, not only in the status line.
+  const missing = before && !after ? 'after' : after && !before ? 'before' : undefined;
+  el('#stage-next').hidden = !missing || demoPending;
+  if (missing) {
+    const [have, want] = missing === 'after' ? ['Before', 'After'] : ['After', 'Before'];
+    el('#stage-next p').textContent =
+      `${have} is loaded (${(before ?? after)!.name}). Next, choose the ${want} file, or drop it here.`;
+    const button = el<HTMLButtonElement>('#stage-next button');
+    button.dataset.load = missing;
+    button.textContent = `Choose ${want} file…`;
+  }
   for (const side of ['before', 'after'] as const) {
     const input = side === 'before' ? before : after;
     const button = el<HTMLButtonElement>(`#load-${side}`);
@@ -223,14 +352,16 @@ document.addEventListener('pointerdown', (event) => {
   if (!el('.settings-anchor').contains(event.target as Node)) closeSettings();
 });
 function showResult(hasDifferences: boolean) {
+  // A partial result keeps the panel open even when nothing was found.
+  const showPanel = hasDifferences || partialResult();
   el('.review-workspace').hidden = false;
-  el('.review-workspace').classList.toggle('no-diff', !hasDifferences);
-  if (hasDifferences) analysisTabs.refresh();
+  el('.review-workspace').classList.toggle('no-diff', !showPanel);
+  if (showPanel) analysisTabs.refresh();
   else analysisTabs.clear();
   el<HTMLButtonElement>('button[data-view="diff"]').hidden = false;
 
-  el('#expand').hidden = !hasDifferences;
-  if (!hasDifferences) {
+  el('#expand').hidden = !showPanel;
+  if (!showPanel) {
     el('.review-workspace').classList.remove('expanded');
     updateLayoutButton(false);
   }
@@ -241,10 +372,10 @@ function updateLegend() {
     ['added', 'Added'],
     ['before', 'Changed · before'],
     ['after', 'Changed · after'],
-    ['context', 'Unchanged'],
+    ['context', partialResult() ? 'No difference found' : 'Unchanged'],
   ];
   el('#legend').replaceChildren();
-  if (view !== 'diff') return;
+  if (view !== 'diff' || !visual) return;
   for (const [kind, label] of entries) {
     const item = document.createElement('span');
     item.className = `key-${kind}`;
@@ -419,13 +550,17 @@ function invalidate() {
   analysisTabs.clear();
   linkedSections.clear();
   surfaceAnalysis.clear();
+  motionAnalysis.clear();
   comparisons.cancel();
   comparing = false;
   el('#compare').hidden = true;
   el('.review-workspace').setAttribute('aria-busy', 'false');
+  stageBusy();
   revision++;
   volumeRevision++;
   report = undefined;
+  coverage = undefined;
+  el('#incomplete-banner').hidden = true;
   visual = undefined;
   solid = undefined;
   el('#volume-summary').hidden = true;
@@ -436,6 +571,7 @@ function invalidate() {
   el<HTMLButtonElement>('#focus-selection').disabled = true;
 
   closeSettings();
+  closeExportMenu();
   el('.review-workspace').hidden = false;
   el('.review-workspace').classList.add('no-diff');
   el('.report-panel').hidden = true;
@@ -449,8 +585,11 @@ function invalidate() {
   el('#change-count').textContent = '—';
   el('#report-status').textContent = '';
   el('#report-status').removeAttribute('data-status');
+  el('#coverage-link').textContent = '';
   el('#changes').innerHTML = '<p class="empty-state">Ready to compare.</p>';
   el('#summary').replaceChildren();
+  el('#register-summary').textContent = '';
+  objectNames = {};
   el('#diagnostics').replaceChildren();
   el('#selection').textContent = '';
   el('#scene-note').textContent = '';
@@ -462,7 +601,9 @@ function invalidate() {
 }
 async function readFile(file: File, side: 'before' | 'after') {
   showcase = false;
+  fromExample = false;
   demoRevision++;
+  demoPending = false;
   const ticket = ++fileRevisions[side];
   invalidate();
   if (side === 'before') before = undefined;
@@ -477,7 +618,11 @@ async function readFile(file: File, side: 'before' | 'after') {
     updateReady();
     if (before && after) await runCompare();
     else {
-      status(`Load the ${side === 'before' ? 'after' : 'before'} model to compare.`);
+      status(
+        side === 'before'
+          ? 'Before is loaded. Choose the After file to compare.'
+          : 'After is loaded. Choose the Before file to compare.',
+      );
       setView(side);
       void (side === 'before' ? beforePane : afterPane).load(input.text);
     }
@@ -490,8 +635,112 @@ for (const side of ['before', 'after'] as const)
   el<HTMLInputElement>(`#${side}-file`).addEventListener('change', (e) => {
     const file = (e.target as HTMLInputElement).files?.[0];
     (e.target as HTMLInputElement).value = '';
-    if (file) void readFile(file, side);
+    if (!file) return;
+    // Like a drop: a file chosen while an example is on screen starts the reviewer's own
+    // pair. It is never compared with the other half of the example.
+    if (fromExample) before = after = undefined;
+    void readFile(file, side);
   });
+/** Two dropped files replace both sides and are compared once. */
+async function readPair(entries: ReadonlyArray<readonly [File, Side]>, note: string) {
+  showcase = false;
+  fromExample = false;
+  demoRevision++;
+  demoPending = false;
+  const tickets = entries.map(([, side]) => ++fileRevisions[side]);
+  const current = () => entries.every(([, side], i) => tickets[i] === fileRevisions[side]);
+  invalidate();
+  before = undefined;
+  after = undefined;
+  updateReady();
+  status('Reading both revisions…');
+  const results = await Promise.allSettled(
+    entries.map(async ([file]) => ({ name: file.name, text: await readInput(file) })),
+  );
+  if (!current()) return;
+  let failure = '';
+  const read: Partial<Record<Side, Input>> = {};
+  results.forEach((result, i) => {
+    const [file, side] = entries[i];
+    if (result.status === 'fulfilled') read[side] = result.value;
+    else
+      failure ||= `${file.name}: ${result.reason instanceof Error ? result.reason.message : 'File could not be read.'}`;
+  });
+  before = read.before;
+  after = read.after;
+  updateReady();
+  if (read.before && read.after) {
+    await runCompare();
+    // A complete comparison leaves the status line empty: say which file went where.
+    if (current() && !el('#global-status').textContent) status(note);
+    return;
+  }
+  // One of the pair could not be read: keep the other on screen and name the failure.
+  const loaded = read.before ? 'before' : read.after ? 'after' : undefined;
+  if (loaded) {
+    setView(loaded);
+    void (loaded === 'before' ? beforePane : afterPane).load(read[loaded]!.text);
+  }
+  status(failure, true);
+}
+// Drag and drop onto the stage: the same validation and reading as the file buttons.
+// An example on screen counts as empty: a dropped file starts the reviewer's own pair
+// instead of being compared with half of the example.
+const ownFiles = () => ({ before: !!before && !fromExample, after: !!after && !fromExample });
+const stageDrop = el('#stage-drop');
+const carriesFiles = (event: DragEvent) =>
+  !!event.dataTransfer && Array.from(event.dataTransfer.types).includes('Files');
+const overStage = (event: DragEvent) => el('.viewers').contains(event.target as Node);
+let dragDepth = 0;
+function showDropTarget(visible: boolean) {
+  stageDrop.hidden = !visible;
+  if (!visible) stageDrop.classList.remove('over');
+  else
+    el('#stage-drop-hint').textContent =
+      `One file ${!ownFiles().before ? 'loads as Before' : ownFiles().after ? 'replaces After' : 'loads as After'}. Two files load as Before and After in file-name order, unless their names say before or after.`;
+}
+document.addEventListener('dragenter', (event) => {
+  if (!carriesFiles(event)) return;
+  if (dragDepth++ === 0) showDropTarget(true);
+});
+document.addEventListener('dragleave', (event) => {
+  if (!carriesFiles(event)) return;
+  if (--dragDepth <= 0) {
+    dragDepth = 0;
+    showDropTarget(false);
+  }
+});
+document.addEventListener('dragover', (event) => {
+  if (!carriesFiles(event)) return;
+  // Also off the stage, so a near miss does not make the browser open the file.
+  event.preventDefault();
+  if (stageDrop.hidden) showDropTarget(true);
+  stageDrop.classList.toggle('over', overStage(event));
+  event.dataTransfer!.dropEffect = overStage(event) ? 'copy' : 'none';
+});
+document.addEventListener('drop', (event) => {
+  if (!carriesFiles(event)) return;
+  event.preventDefault();
+  dragDepth = 0;
+  showDropTarget(false);
+  if (!overStage(event)) return;
+  const files = Array.from(event.dataTransfer!.files);
+  const plan = planDrop(files, ownFiles());
+  if ('error' in plan) {
+    status(plan.error, true);
+    return;
+  }
+  if (files.length === 1) {
+    if (fromExample) before = after = undefined;
+    void readFile(files[0], plan.sides[0]);
+    return;
+  }
+  const name = (side: Side) => files[plan.sides.indexOf(side)].name;
+  void readPair(
+    files.map((file, i) => [file, plan.sides[i]] as const),
+    `Loaded ${name('before')} as Before and ${name('after')} as After (${plan.rule}).`,
+  );
+});
 function selectAnalysisPair(pair: AnalysisPair, refreshVolume = true) {
   const changedVolumePair =
     solid?.pairPaths.before !== pair.before.path || solid?.pairPaths.after !== pair.after.path;
@@ -570,13 +819,31 @@ function selectChange(change: ChangeRecord, group?: ChangeRecord[], label?: stri
             })),
           );
   const node = change.afterNode ?? change.beforeNode;
+  // A light has no shape of its own: its evidence is the register entry and the two revisions.
+  const light =
+    !ok && changes.every((item) => LIGHTS.has((item.afterNode ?? item.beforeNode)?.nodeType ?? ''));
   el('#selection').textContent =
-    `${label ?? node?.defName ?? node?.nodeType ?? 'Scene'} · ${ok ? 'Highlighted in scene' : 'No visible object in this view'}`;
+    `${label ?? node?.defName ?? node?.nodeType ?? 'Scene'} · ${ok ? 'Highlighted in scene' : light ? 'A light has no shape to highlight. Compare the Before and After views to see its effect; the Differences view uses its own neutral lighting.' : 'No visible object in this view'}`;
   el<HTMLButtonElement>('#focus-selection').disabled = !ok;
 }
 function renderReport(value: X3DiffReport) {
   report = value;
-  el('#change-count').textContent = String(value.changes.length);
+  coverage = describeCoverage(value);
+  const partial = partialResult();
+  el('#incomplete-banner').hidden = !partial;
+  // On a phone the list starts folded so the sticky notice leaves room for the register.
+  el<HTMLDetailsElement>('#incomplete-banner details').open = window.innerWidth > 540;
+  el('#incomplete-list').replaceChildren(
+    ...coverageLines(coverage, {
+      before: value.inputs.before.name,
+      after: value.inputs.after.name,
+    }).map((line) => {
+      const item = document.createElement('li');
+      item.textContent = line;
+      return item;
+    }),
+  );
+  el('#change-count').textContent = `${value.changes.length}${partial ? ' · partial' : ''}`;
   el('#report-status').textContent = {
     complete: '',
     completeWithWarnings: 'With notes',
@@ -584,10 +851,23 @@ function renderReport(value: X3DiffReport) {
     failed: 'Failed',
   }[value.summary.status];
   el('#report-status').dataset.status = value.summary.status;
+  // The status only speaks for the catalogued node types: say how many, and link the list.
+  el('#coverage-link').textContent =
+    `Compares ${value.catalog.supportedNodes.length} X3D node types — see the list`;
   const counts = new Map<string, number>();
   for (const c of value.changes) counts.set(c.category, (counts.get(c.category) ?? 0) + 1);
+  objectNames = value.changes.length
+    ? { before: readObjectNames(before?.text ?? ''), after: readObjectNames(after?.text ?? '') }
+    : {};
+  el('#register-summary').textContent = summarizeChanges(value.changes);
   const summary = el('#summary');
   summary.replaceChildren();
+  if (partial) {
+    const note = document.createElement('p');
+    note.className = 'partial-note';
+    note.textContent = 'Partial counts: only the content that was compared is counted.';
+    summary.append(note);
+  }
   for (const [label, count] of [
     [
       'Geometry',
@@ -598,6 +878,14 @@ function renderReport(value: X3DiffReport) {
       value.changes.filter((c) => c.category === 'material' || c.category === 'appearance').length,
     ],
     ['Structure', value.changes.filter((c) => c.category === 'structure').length],
+    // Everything else (animation, lighting, viewpoints, names, document), so the four add up.
+    [
+      'Other',
+      value.changes.filter(
+        (c) =>
+          !['geometry', 'transform', 'material', 'appearance', 'structure'].includes(c.category),
+      ).length,
+    ],
   ] as const) {
     const metric = document.createElement('div');
     const n = document.createElement('strong'),
@@ -608,20 +896,20 @@ function renderReport(value: X3DiffReport) {
     summary.append(metric);
   }
   const category = el<HTMLSelectElement>('#category');
-  category.innerHTML = '<option value="all">All categories</option>';
+  category.replaceChildren();
   category.disabled = false;
-  for (const [name, count] of counts) {
+  for (const [name, count] of [['all', value.changes.length] as const, ...counts]) {
     const option = document.createElement('option');
     option.value = name;
-    option.textContent = `${categoryNames[name] ?? name} (${count})`;
+    option.textContent = categoryLabel(name, count);
     category.append(option);
   }
-  renderRegister(el('#changes'), value, 'all', selectChange);
+  renderRegister(el('#changes'), value, 'all', selectChange, objectNames);
   const notes = el('#diagnostics');
   notes.replaceChildren();
   const unique = new Map<string, number>();
   for (const d of value.diagnostics) {
-    const message = `${d.side ? `${d.side}: ` : ''}${d.message}`;
+    const message = describeDiagnostic(d);
     unique.set(message, (unique.get(message) ?? 0) + 1);
   }
   for (const [message, count] of unique) {
@@ -635,24 +923,29 @@ function renderReport(value: X3DiffReport) {
 el<HTMLSelectElement>('#category').addEventListener('change', () => {
   if (report) {
     clearSelection();
-    renderRegister(el('#changes'), report, el<HTMLSelectElement>('#category').value, selectChange);
+    renderRegister(
+      el('#changes'),
+      report,
+      el<HTMLSelectElement>('#category').value,
+      selectChange,
+      objectNames,
+    );
   }
 });
-async function runCompare(defaults: { expanded?: boolean } = {}) {
+async function runCompare(defaults: { view?: string } = {}) {
   if (!(before && after)) return;
   const a = before,
     b = after;
 
   const desiredExpanded =
-    preferences.expanded ??
-    defaults.expanded ??
-    el('.review-workspace').classList.contains('expanded');
+    preferences.expanded ?? el('.review-workspace').classList.contains('expanded');
   invalidate();
   const current = revision;
   comparing = true;
   el('#compare').hidden = false;
   el('.review-workspace').setAttribute('aria-busy', 'true');
   status('Comparing…');
+  stageBusy('Comparing revisions…');
   try {
     const result = await comparisons.compare({
       before: a.text,
@@ -662,16 +955,48 @@ async function runCompare(defaults: { expanded?: boolean } = {}) {
     });
     if (current !== revision) return;
     renderReport(result);
-    if (!['complete', 'completeWithWarnings'].includes(result.summary.status)) {
-      const reason =
-        result.diagnostics.find((d) => d.severity === 'error')?.message ??
-        result.diagnostics.find((d) => d.code.startsWith('UNSUPPORTED'))?.message ??
-        'Some node identities could not be matched confidently.';
+    const cause =
+      result.diagnostics.find((d) => d.severity === 'error') ??
+      result.diagnostics.find((d) => d.code.startsWith('UNSUPPORTED'));
+    const reason = cause
+      ? describeDiagnostic(cause, { before: a.name, after: b.name })
+      : 'Some objects could not be matched between the files with confidence';
+    // Replaces the empty "all clear" status whenever the result is partial.
+    const settled = (text = '') =>
+      status(
+        [
+          partialResult()
+            ? `Incomplete comparison: some content was not compared. ${reason}.`
+            : text,
+          motionAnalysis.notice,
+        ]
+          .filter(Boolean)
+          .join(' '),
+        partialResult(),
+      );
+    // Motion is read from the two files directly, so it is available even when the
+    // comparison is incomplete.
+    if (!coverage?.comparedNothing) motionAnalysis.load(a.text, b.text);
+    if (coverage?.comparedNothing) {
+      // Nothing in the scenes was compared (unreadable file or version boundary):
+      // there is no register to show, only the reason.
       status(
         (result.summary.status === 'failed' ? 'Comparison failed: ' : 'Comparison incomplete: ') +
           reason,
         true,
       );
+      // Keep the revisions on screen: content the engine cannot vouch for should
+      // not leave the reviewer looking at an empty stage.
+      const shown = cause?.side === 'after' ? 'before' : 'after';
+      const previews = {
+        before: () => beforePane.load(a.text),
+        after: () => afterPane.load(b.text),
+      };
+      void previews[shown]().then(() => {
+        if (current === revision) return previews[shown === 'after' ? 'before' : 'after']();
+      });
+      showResult(false);
+      setView(shown);
       return;
     }
     if (!result.changes.length) {
@@ -685,7 +1010,7 @@ async function runCompare(defaults: { expanded?: boolean } = {}) {
       if (current !== revision) return;
       showResult(false);
       setView('diff');
-      status('No differences found.');
+      settled('No differences found.');
       return;
     }
     linkedSections.load(a.text, b.text, result);
@@ -700,17 +1025,29 @@ async function runCompare(defaults: { expanded?: boolean } = {}) {
     updateObjectChoice(el<HTMLSelectElement>('#volume-object'));
     surfaceAnalysis.load(linkedSections.getPairs());
     visual = buildDiffScene(a.text, b.text, result);
-    void beforePane.load(a.text).then(() => {
-      if (current === revision && view === 'before' && selectedAnalysisPair)
+    const overlay = visual.xml;
+    const reselect = (side: 'before' | 'after') => () => {
+      if (current === revision && view === side && selectedAnalysisPair)
         selectAnalysisPair(selectedAnalysisPair);
-    });
-    void afterPane.load(b.text).then(() => {
-      if (current === revision && view === 'after' && selectedAnalysisPair)
-        selectAnalysisPair(selectedAnalysisPair);
-    });
-    await diffPane.load(visual.xml);
+    };
+    const loaders = {
+      before: () => beforePane.load(a.text).then(reselect('before')),
+      after: () => afterPane.load(b.text).then(reselect('after')),
+      diff: () => diffPane.load(overlay),
+    };
+    // Importing three scenes at once makes all of them slow. Load the Differences
+    // view the reviewer lands on, show it, then fill the other two behind it.
+    await loaders.diff();
     if (current !== revision) return;
+    void (async () => {
+      for (const side of ['after', 'before'] as const) {
+        if (current !== revision) return;
+        await loaders[side]();
+      }
+    })();
     showResult(true);
+    // A link may ask for one analysis view; anything else keeps the usual one.
+    if (defaults.view) analysisTabs.open(defaults.view);
     updateAnalysisControls();
     el('#scene-note').textContent = '';
     el('.review-workspace').classList.toggle('expanded', desiredExpanded);
@@ -718,7 +1055,7 @@ async function runCompare(defaults: { expanded?: boolean } = {}) {
     setView('diff');
 
     if (current !== revision) return;
-    status('');
+    settled();
   } catch (error) {
     if (current === revision)
       status(error instanceof Error ? error.message : 'Comparison failed.', true);
@@ -727,6 +1064,7 @@ async function runCompare(defaults: { expanded?: boolean } = {}) {
       comparing = false;
       el('#compare').hidden = true;
       el('.review-workspace').setAttribute('aria-busy', 'false');
+      stageBusy();
     }
   }
 }
@@ -736,66 +1074,129 @@ el('#compare').addEventListener('click', () => {
     status('Comparison cancelled.');
   }
 });
-el('#apply-settings').addEventListener('click', () => {
-  const v = Number(el<HTMLInputElement>('#tolerance').value);
-  if (!Number.isFinite(v) || v < 0) {
+// The threshold is kept even when no pair is loaded yet, so the value shown in
+// Settings is always the one the next comparison uses.
+function applyTolerance() {
+  const input = el<HTMLInputElement>('#tolerance');
+  const v = Number(input.value);
+  if (input.value.trim() === '' || !Number.isFinite(v) || v < 0) {
     status('Enter a non-negative coordinate threshold.', true);
     return;
   }
   tolerance = { ...tolerance, vectorAbs: v };
   closeSettings();
-  void runCompare();
+  if (before && after) void runCompare();
+}
+el('#apply-settings').addEventListener('click', applyTolerance);
+el('#tolerance').addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') applyTolerance();
 });
-el('#export').addEventListener('click', () => {
-  if (!report) return;
-  const url = URL.createObjectURL(
-    new Blob([exportReportJson(report)], { type: 'application/json' }),
-  );
+function download(text: string, type: string, name: string) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
   const link = document.createElement('a');
   link.href = url;
-  link.download = 'x3diff-report.json';
+  link.download = name;
   link.click();
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+/** A button that opens a small menu: arrow keys move, Escape and outside clicks close. */
+function menuButton(picker: HTMLElement, trigger: HTMLButtonElement, menu: HTMLElement) {
+  const close = () => {
+    menu.hidden = true;
+    trigger.setAttribute('aria-expanded', 'false');
+  };
+  trigger.addEventListener('click', () => {
+    const opening = menu.hidden;
+    menu.hidden = !opening;
+    trigger.setAttribute('aria-expanded', String(opening));
+    if (opening) menu.querySelector<HTMLButtonElement>('button')?.focus();
+  });
+  document.addEventListener('pointerdown', (event) => {
+    if (!picker.contains(event.target as Node)) close();
+  });
+  menu.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      close();
+      trigger.focus();
+      return;
+    }
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const options = Array.from(menu.querySelectorAll<HTMLButtonElement>('button'));
+    const index = options.indexOf(document.activeElement as HTMLButtonElement);
+    const next =
+      event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+          ? options.length - 1
+          : (index + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length;
+    options[next]?.focus();
+  });
+  picker.addEventListener('focusout', (event) => {
+    if (event.relatedTarget && !picker.contains(event.relatedTarget as Node)) close();
+  });
+  return close;
+}
+const exportTrigger = el<HTMLButtonElement>('#export');
+const closeExportMenu = menuButton(el('.export-picker'), exportTrigger, el('#export-menu'));
+let exporting = false;
+/** The readable report quotes the analysis views, so it measures the selected object first. */
+async function exportHtml() {
+  if (!report || !before || !after || exporting) return;
+  const value = report,
+    current = revision,
+    was = el('#global-status').textContent ?? '',
+    wasError = el('#global-status').classList.contains('error');
+  exporting = true;
+  status('Preparing the report…');
+  try {
+    // Let the status paint before the measurements run.
+    await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
+    const pairs = linkedSections.getPairs();
+    const analyses = coverage?.comparedNothing
+      ? []
+      : await gatherAnalysisFacts({
+          before: before.text,
+          after: after.text,
+          report: value,
+          pairs,
+          pair:
+            selectedAnalysisPair ??
+            pairs[Number(el<HTMLSelectElement>('#volume-object').value)] ??
+            pairs[0],
+          resolution: preferences.volumeResolution ?? 'medium',
+          solid,
+          motion: motionAnalysis,
+        });
+    if (current !== revision) return;
+    download(
+      exportReportHtml(value, { generatedAt: new Date(), analyses, names: objectNames }),
+      'text/html',
+      exportFileName(value, 'html'),
+    );
+  } finally {
+    exporting = false;
+    if (current === revision) status(was, wasError);
+  }
+}
+el('#export-menu').addEventListener('click', (event) => {
+  const kind = (event.target as HTMLElement).closest<HTMLElement>('[data-export]')?.dataset.export;
+  if (!kind || !report) return;
+  closeExportMenu();
+  exportTrigger.focus();
+  if (kind === 'json')
+    download(exportReportJson(report), 'application/json', exportFileName(report, 'json'));
+  else
+    void exportHtml().catch((error) =>
+      status(error instanceof Error ? error.message : 'The report could not be written.', true),
+    );
 });
 const demoTrigger = el<HTMLButtonElement>('#demo-trigger'),
   demoMenu = el<HTMLElement>('#demo-menu');
-function closeDemoMenu() {
-  demoMenu.hidden = true;
-  demoTrigger.setAttribute('aria-expanded', 'false');
-}
-demoTrigger.addEventListener('click', () => {
-  const opening = demoMenu.hidden;
-  demoMenu.hidden = !opening;
-  demoTrigger.setAttribute('aria-expanded', String(opening));
-  if (opening) demoMenu.querySelector<HTMLButtonElement>('button')?.focus();
-});
-document.addEventListener('pointerdown', (event) => {
-  if (!el('.demo-picker').contains(event.target as Node)) closeDemoMenu();
-});
-demoMenu.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape') {
-    closeDemoMenu();
-    demoTrigger.focus();
-    return;
-  }
-  if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
-  event.preventDefault();
-  const options = Array.from(demoMenu.querySelectorAll<HTMLButtonElement>('button'));
-  const index = options.indexOf(document.activeElement as HTMLButtonElement);
-  const next =
-    event.key === 'Home'
-      ? 0
-      : event.key === 'End'
-        ? options.length - 1
-        : (index + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length;
-  options[next]?.focus();
-});
-el('.demo-picker').addEventListener('focusout', (event) => {
-  if (event.relatedTarget && !el('.demo-picker').contains(event.relatedTarget as Node))
-    closeDemoMenu();
-});
-async function loadDemo(demo: string) {
-  if (!demo) return;
+const closeDemoMenu = menuButton(el('.demo-picker'), demoTrigger, demoMenu);
+async function loadDemo(id: string, view?: string) {
+  if (!Object.hasOwn(demos, id)) return;
+  const demo = demos[id];
   closeDemoMenu();
   const ticket = ++demoRevision;
   fileRevisions.before++;
@@ -803,60 +1204,34 @@ async function loadDemo(demo: string) {
   invalidate();
   before = undefined;
   after = undefined;
+  demoPending = true;
   updateReady();
   status('Loading…');
+  stageBusy('Loading example…');
   try {
-    let a: string, b: string;
-    if (['brickhaven', 'forgeworks', 'fitlab'].includes(demo)) {
-      const responses = await Promise.all([
-        fetch(`${import.meta.env.BASE_URL}examples/${demo}/before.x3d`),
-        fetch(`${import.meta.env.BASE_URL}examples/${demo}/after.x3d`),
-      ]);
-      if (responses.some((r) => !r.ok)) throw new Error('Showcase files are unavailable.');
-      [a, b] = await Promise.all(responses.map((r) => r.text()));
-    } else if (demo === 'dolphin') {
-      const files = await Promise.all([
-        import('../../fixtures/dolphin/before.x3d?raw'),
-        import('../../fixtures/dolphin/after.x3d?raw'),
-      ]);
-      [a, b] = files.map((f) => f.default);
-    } else {
-      const responses = await Promise.all([
-        fetch(`${import.meta.env.BASE_URL}examples/HelloWorld.x3d`),
-        fetch(`${import.meta.env.BASE_URL}examples/HelloWorld-edited.x3d`),
-      ]);
-      if (responses.some((r) => !r.ok)) throw new Error('Example files are unavailable.');
-      [a, b] = await Promise.all(responses.map((r) => r.text()));
-    }
+    const [a, b] = await demo.load();
     if (ticket !== demoRevision) return;
-    showcase = ['brickhaven', 'forgeworks', 'fitlab'].includes(demo);
-    const demoName =
-      demo === 'forgeworks' ? 'Forgeworks' : demo === 'fitlab' ? 'Fit Lab' : 'Brickhaven';
-    before = {
-      name: showcase
-        ? `${demoName} · original`
-        : demo === 'dolphin'
-          ? 'Dolphin · neutral pose'
-          : 'Objects · original',
-      text: a,
-    };
-    after = {
-      name: showcase
-        ? `${demoName} · revised`
-        : demo === 'dolphin'
-          ? 'Dolphin · curved pose'
-          : 'Objects · revised',
-      text: b,
-    };
+    demoPending = false;
+    showcase = !!demo.showcase;
+    fromExample = true;
+    before = { name: demo.names[0], text: a };
+    after = { name: demo.names[1], text: b };
     updateReady();
     motion = true;
     beforePane.setAnimationEnabled(true);
     afterPane.setAnimationEnabled(true);
     updateMotionButton();
-    await runCompare({ expanded: showcase });
+    // Every example opens side by side, the register beside the scene, unless the reviewer
+    // chose the focused layout before.
+    await runCompare({ view });
   } catch (error) {
-    if (ticket === demoRevision)
-      status(error instanceof Error ? error.message : 'Example could not be loaded.', true);
+    if (ticket === demoRevision) {
+      demoPending = false;
+      stageBusy();
+      updateReady();
+      // The technical reason (a failed fetch or import) helps nobody choose what to do next.
+      status('The example could not be loaded. Choose or drop your own files instead.', true);
+    }
   }
 }
 for (const button of Array.from(demoMenu.querySelectorAll<HTMLButtonElement>('button[data-demo]')))
@@ -867,12 +1242,19 @@ for (const side of ['before', 'after'] as const)
   el(`#load-${side}`).addEventListener('click', () =>
     el<HTMLInputElement>(`#${side}-file`).click(),
   );
+for (const button of Array.from(root.querySelectorAll<HTMLButtonElement>('.viewers [data-load]')))
+  button.addEventListener('click', () =>
+    el<HTMLInputElement>(`#${button.dataset.load}-file`).click(),
+  );
+el('#stage-empty [data-example]').addEventListener('click', () => void loadDemo('example'));
 invalidate();
 updateReady();
-const initialExample = new URLSearchParams(location.search).get('example');
+// app.html?example=brickhaven&view=motion opens an example on one analysis view. Unknown
+// examples fall back to the Dolphin, and an unknown or unavailable view to the usual tab.
+const query = new URLSearchParams(location.search);
+const initialExample = query.get('example');
+const initialView = query.get('view') ?? undefined;
 void loadDemo(
-  initialExample &&
-    ['example', 'dolphin', 'fitlab', 'brickhaven', 'forgeworks'].includes(initialExample)
-    ? initialExample
-    : 'dolphin',
+  initialExample && Object.hasOwn(demos, initialExample) ? initialExample : 'dolphin',
+  initialView && /^[a-z][a-z0-9-]{0,63}$/.test(initialView) ? initialView : undefined,
 );
