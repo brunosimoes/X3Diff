@@ -18,3 +18,7 @@ Thumbs.db
 
 .obsidian/
 Untitled*.md
+
+# Local working notes and tool state
+review/
+.claude/

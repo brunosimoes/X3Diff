@@ -617,8 +617,9 @@ a.button{display:inline-flex;align-items:center;justify-content:center}
 .incomplete-banner summary{margin-top:0}
 }
 /* Under the register heading: the status badge and what the status speaks for. */
-.coverage-line{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:-6px 0 0;padding:0 20px 12px;font-size:11px;line-height:1.4}
-.coverage-link{color:var(--accent);font-weight:600;text-decoration:underline;text-underline-offset:3px;border-radius:3px}
+.coverage-line{display:flex;align-items:center;gap:10px;margin:-6px 0 0;padding:0 20px 12px;font-size:11px;line-height:1.4}
+.coverage-line .report-status{flex:none}
+.coverage-link{min-width:0;color:var(--accent);font-weight:600;text-decoration:underline;text-underline-offset:3px;border-radius:3px}
 .coverage-link:empty{display:none}
 .coverage-link:hover{color:var(--ink)}
 .coverage-link:focus-visible{outline:3px solid #29a5b0;outline-offset:3px}

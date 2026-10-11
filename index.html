@@ -8,6 +8,27 @@
       content="X3Diff turns X3D revisions into inspectable evidence. Compare scenes locally, explore geometric changes, and make informed decisions before accepting AI-assisted edits."
     />
     <meta name="theme-color" content="#0c1821" />
+    <!-- Link previews. Crawlers need absolute addresses: these are the published site. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="X3Diff" />
+    <meta property="og:url" content="https://brunosimoes.github.io/X3Diff/" />
+    <meta property="og:title" content="X3Diff: see what changed between two X3D scenes" />
+    <meta
+      property="og:description"
+      content="Drop in two versions of an X3D scene and see what changed, in the file and in 3D, without uploading anything. Open source."
+    />
+    <meta
+      property="og:image"
+      content="https://brunosimoes.github.io/X3Diff/media/x3diff-motion-paths.jpg"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="X3Diff Motion paths view: the routes of an animated object in two revisions of a scene, coloured by the gap between them, with the gap charted over time."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <!-- Keep in step with the / and /index.html rules in public/_headers (checked by tests/csp.test.ts). -->
     <meta
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; style-src 'self'; script-src 'self'"
@@ -23,8 +44,8 @@
         ><img src="/favicon.svg" width="32" height="32" alt="" />X3<span>Diff</span></a
       >
       <nav aria-label="Main navigation">
-        <a href="#demo">Watch demo</a><a href="#approach">How it works</a><a href="#abstract">Abstract</a
-        ><a href="https://github.com/brunosimoes/X3Diff">GitHub ↗</a
+        <a href="#demo">Watch demo</a><a href="#approach">How it works</a
+        ><a href="#abstract">Abstract</a><a href="https://github.com/brunosimoes/X3Diff">GitHub ↗</a
         ><a class="button small" href="./app.html">Open app <span aria-hidden="true">↗</span></a>
       </nav>
     </header>
@@ -45,6 +66,14 @@
           </div>
           <p class="privacy">
             No account. No model upload. Your files are processed in your browser.
+          </p>
+          <p class="origin">
+            In June 2021 a post on the x3d-public mailing list listed “geometric diffing for X3D
+            models” among the next steps for the community, beyond the text and image diffs it
+            already had (<a
+              href="https://web3d.org/pipermail/x3d-public_web3d.org/2021-June/015276.html"
+              >read the thread ↗</a
+            >). X3Diff is an open-source attempt at that step.
           </p>
         </div>
         <div
@@ -72,11 +101,20 @@
         <div class="section-title">
           <p class="eyebrow">X3DIFF IN ACTION · WEB3D 2026</p>
           <h2 id="demo-title">See the change. Understand the impact.</h2>
-          <p>Three minutes from scene revisions to evidence: explore file differences, linked slices,
-            volume regions, and surface deviation.</p>
+          <p>
+            Three minutes from scene revisions to evidence: explore file differences, linked slices,
+            volume regions, and surface deviation.
+          </p>
         </div>
-        <video controls playsinline preload="none" width="1920" height="1080"
-          poster="/media/x3diff-web3d-2026.jpg" aria-label="X3Diff demonstration for Web3D 2026">
+        <video
+          controls
+          playsinline
+          preload="none"
+          width="1920"
+          height="1080"
+          poster="/media/x3diff-web3d-2026.jpg"
+          aria-label="X3Diff demonstration for Web3D 2026"
+        >
           <source src="/media/x3diff-web3d-2026.mp4" type="video/mp4" />
           <p><a href="./media/x3diff-web3d-2026.mp4">Download the X3Diff demonstration</a>.</p>
         </video>
@@ -120,8 +158,9 @@
             <span class="number">01</span>
             <h3>Compare the revisions</h3>
             <p>
-              Load Before and After. A deterministic comparison identifies supported changes to
-              geometry, transforms, materials, references, and animation declarations.
+              Load Before and After, or drop both files on the stage. A deterministic comparison
+              identifies supported changes to geometry, transforms, materials, references, and
+              animation declarations.
             </p>
           </article>
           <article>
@@ -129,7 +168,8 @@
             <h3>Inspect the impact</h3>
             <p>
               Connect a difference to its 3D object. Slice and measure, inspect sampled surface
-              deviation, or explore before-only, shared, and after-only volume.
+              deviation, explore before-only, shared, and after-only volume, or follow an animated
+              object along its path in both revisions.
             </p>
           </article>
           <article>
@@ -137,7 +177,8 @@
             <h3>Make the call</h3>
             <p>
               Use the report and diagnostics to decide whether to accept, revise, or investigate.
-              Export the semantic JSON as evidence for your review process.
+              When part of a file cannot be compared, the result says so and lists what was skipped.
+              Export a printable report, or the semantic JSON, as evidence for your review process.
             </p>
           </article>
         </div>
@@ -164,11 +205,29 @@
             <h3>How does the geometry compare?</h3>
             <p>Compare a shifted housing to see which regions are unchanged, removed, or added.</p>
             <span class="example-link">Open Fit Lab ↗</span></a
-          >
+          ><a class="example-wide" href="./app.html?example=brickhaven&amp;view=motion"
+            ><span class="example-text"
+              ><span class="example-index">04 / COMPARE MOTION</span>
+              <h3>Did it get faster, or go somewhere else?</h3>
+              <p>
+                Follow the Brickhaven railway along its route in both revisions. Motion paths
+                colours the route by the gap between them and tells a change of speed from a change
+                of path.
+              </p>
+              <span class="example-link">Open Brickhaven on Motion paths ↗</span></span
+            ><img
+              src="/media/x3diff-motion-paths.jpg"
+              width="1200"
+              height="630"
+              loading="lazy"
+              decoding="async"
+              alt="Motion paths in X3Diff: the railway route in the Brickhaven example, coloured from blue to red by the gap between the two revisions, with the gap charted over 32 seconds."
+          /></a>
         </div>
         <p class="more-examples">
-          Also in the app: Brickhaven and Forgeworks demonstrate native X3D animation in the
-          original revision views.
+          Also in the app: Forgeworks, a vehicle assembly line whose retimed robot arms can be
+          compared the same way. Both animated examples play native X3D animation in the original
+          revision views.
         </p>
       </section>
       <article class="abstract section" id="abstract" aria-labelledby="abstract-title">
@@ -207,10 +266,10 @@
           </p>
           <p>
             X3Diff addresses this gap with a local, interactive review workbench for two XML-encoded
-            X3D 3.3 revisions. Its purpose is to support better decisions and review gates in
-            workflows where edits may be authored by a person, generated by AI, or produced by
-            another tool. It does not need to know how an edit was created. The comparison itself is
-            deterministic and does not use an AI model.
+            X3D revisions, declared as any version from 3.0 to 4.0. Its purpose is to support better
+            decisions and review gates in workflows where edits may be authored by a person,
+            generated by AI, or produced by another tool. It does not need to know how an edit was
+            created. The comparison itself is deterministic and does not use an AI model.
           </p>
           <h3>How does it work?</h3>
           <p>
@@ -218,23 +277,28 @@
             and compares typed values with explicit tolerances. It reports changes to supported
             scene declarations, including geometry, transforms, materials, DEF/USE references, and
             ROUTEs. Unsupported or ambiguous content produces diagnostics rather than a trusted
-            assertion that the scenes are equivalent. The result is a structured report that can be
-            inspected in the interface and exported as JSON.
+            assertion that the scenes are equivalent: the differences that were found are still
+            shown, under a notice that the comparison is incomplete and a list of what was skipped.
+            The result is a structured report that can be inspected in the interface and exported as
+            a printable HTML page or as JSON.
           </p>
           <p>
             The visual layer places revisions in a common scene context and links selections to
-            identifiable objects. Four analysis views provide complementary evidence. File
+            identifiable objects. Five analysis views provide complementary evidence. File
             differences presents the semantic register. Slice &amp; measure intersects a supported
             object pair with a shared plane and provides a straight-line ruler. Surface deviation
             displays sampled nearest-surface distances in both directions. Volume differences
-            isolates before-only, shared, and after-only regions for one supported matched pair.
+            measures before-only, shared, and after-only regions for a selected matched pair. Motion
+            paths draws where an animated object travels in each revision, colours the path by the
+            gap between the two, and separates a change of speed from a change of route.
           </p>
           <p>
             These views are designed around practical questions rather than a single universal
             similarity score. A reviewer can locate an unexpected change, inspect a cross-section,
-            examine a high-deviation face, and return to the underlying declaration. The tab
-            registry makes views configurable and provides a small extension interface for
-            additional analyses. Settings and layout choices are remembered in the browser.
+            examine a high-deviation face, step through two animations side by side, and return to
+            the underlying declaration. The tab registry makes views configurable and provides a
+            small extension interface for additional analyses. Settings and layout choices are
+            remembered in the browser.
           </p>
           <h3>How does it support gating?</h3>
           <p>
@@ -257,25 +321,30 @@
             The tool runs as a static web application. User-selected models are read locally; no
             model-upload service or account is required. A Web Worker performs semantic comparison,
             while bounded geometry analysis and interactive renderers provide inspection views.
-            Native X3D animation is demonstrated in the original revision views; geometric analysis
-            examines authored static geometry rather than runtime motion.
+            Native X3D animation plays in the original revision views. Motion paths compares
+            declared position and rotation animation; the other geometric analyses examine authored
+            static geometry rather than runtime motion.
           </p>
           <p>
-            Support is intentionally explicit. The semantic catalog covers 34 common X3D 3.3 nodes,
-            not the entire standard. Surface distances are sampled at triangle centres; they are not
-            exact continuous maxima. Volume calculations use tessellated primitives or a bounded
-            sampled mesh approximation. Measurements use scene coordinates without automatic
-            registration or unit conversion. Unsupported geometry and external scene content remain
-            outside the analysis boundary.
+            Support is intentionally explicit. The semantic catalog covers 50 common nodes of X3D
+            3.3, including lights and viewpoints, not the entire standard, and files declared as 3.0
+            to 4.0 are read with it. Unsupported nodes, including prototypes and scripts, make
+            comparisons incomplete; their contents are excluded from semantic analysis. Surface
+            distances are sampled at triangle centres; they are not exact continuous maxima. Volume
+            calculations use tessellated primitives or a bounded sampled mesh approximation.
+            Measurements use scene coordinates without automatic registration or unit conversion.
+            Motion paths follows declared interpolators from time zero and does not evaluate sensors
+            or scripts. Unsupported geometry and external scene content remain outside the analysis
+            boundary.
           </p>
           <p>
             The contribution is a reproducible connection between semantic review and spatial
             inspection: a reviewer can move from a reported change to geometric evidence while
             retaining the limits of that evidence. Automated tests cover parsing, comparison, known
-            geometric cases, and browser interactions. Open source code, bundled examples, and
-            documented extension points make the approach inspectable and reusable. The aim is to
-            help people review increasingly rapid streams of changes with greater clarity and
-            accountability.
+            geometric and motion cases, and browser interactions. Open source code, bundled
+            examples, and documented extension points make the approach inspectable and reusable.
+            The aim is to help people review increasingly rapid streams of changes with greater
+            clarity and accountability.
           </p>
         </div>
       </article>

@@ -11,6 +11,7 @@
     "test": "vitest run",
     "catalog": "tsx scripts/build-catalog.ts",
     "test:browser": "playwright test",
+    "test:preview": "playwright test -c playwright.preview.config.ts",
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm test && npm run build",
     "format": "prettier --write src tests scripts *.ts *.json",
@@ -34,7 +35,7 @@
     "vite": "8.3.1",
     "vitest": "5.0.2"
   },
-  "description": "Local semantic and visual comparison of XML-encoded X3D 3.3 scenes",
+  "description": "Local semantic and visual comparison of XML-encoded X3D 3.0 to 4.0 scenes",
   "license": "MIT",
   "engines": {
     "node": ">=24 <25"

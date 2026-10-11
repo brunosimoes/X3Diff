@@ -1,5 +1,12 @@
 name: Verify X3Diff
-on: [push, pull_request, workflow_dispatch]
+# Pushes to main are verified by the Pages workflow, which calls this one and
+# publishes only if it passes; running it here as well would repeat every test.
+on:
+  push:
+    branches-ignore: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
 permissions:
   contents: read
 jobs:
@@ -15,4 +22,5 @@ jobs:
       - run: npm run check
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
+      - run: npm run test:preview
       - run: npm audit --omit=dev --registry=https://registry.npmjs.org

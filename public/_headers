@@ -1,4 +1,19 @@
+# Response headers for hosts that read this file (Netlify, Cloudflare Pages).
+# GitHub Pages ignores it; there the <meta http-equiv="Content-Security-Policy">
+# in index.html, app.html and coverage.html is the only policy.
+#
+# Keep each Content-Security-Policy below identical to the meta policy of its page,
+# plus frame-ancestors, which browsers ignore in a meta tag. tests/csp.test.ts
+# fails when the two drift. A host that serves /app without the .html suffix
+# falls back to the meta policy.
 /*
-  Content-Security-Policy: default-src 'self'; connect-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; object-src 'none'; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
+/
+  Content-Security-Policy: default-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; style-src 'self'; script-src 'self'; frame-ancestors 'none'
+/index.html
+  Content-Security-Policy: default-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; style-src 'self'; script-src 'self'; frame-ancestors 'none'
+/app.html
+  Content-Security-Policy: default-src 'self'; connect-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; frame-ancestors 'none'
+/coverage.html
+  Content-Security-Policy: default-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; style-src 'self'; script-src 'self'; frame-ancestors 'none'

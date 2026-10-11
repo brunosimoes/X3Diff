@@ -641,3 +641,95 @@ footer p {
     padding: 30px 20px;
   }
 }
+/* Where the tool comes from, under the hero's reassurance line. */
+.origin {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #4d6463;
+  max-width: 520px;
+  margin: 14px 0 0;
+}
+.origin a {
+  color: var(--accent);
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+/* The animation example spans the row and shows the view it opens. */
+.example-grid > a.example-wide {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 28px;
+}
+.example-wide .example-text {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  flex: 1 1 0;
+  min-width: 0;
+}
+.example-wide img {
+  flex: 1.25 1 0;
+  min-width: 0;
+  width: 100%;
+  height: auto;
+  align-self: center;
+  border-radius: 6px;
+  border: 1px solid #2d434f;
+  background: #101c29;
+}
+@media (max-width: 800px) {
+  .example-grid > a.example-wide {
+    flex-direction: column;
+    gap: 18px;
+  }
+  .example-wide img {
+    flex: none;
+  }
+}
+/* Coverage page: the catalogued node types and what each status means. */
+.coverage h1 {
+  font-size: clamp(32px, 3.4vw, 44px);
+  letter-spacing: -1.8px;
+}
+.coverage h2 {
+  font-size: 22px;
+  letter-spacing: -0.6px;
+  margin: 44px 0 12px;
+}
+.coverage-note {
+  font-size: 14px;
+  color: #455d5b;
+  max-width: 730px;
+}
+.node-list {
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+  columns: 4 190px;
+  column-gap: 24px;
+  font:
+    13px ui-monospace,
+    Consolas,
+    monospace;
+}
+.node-list li {
+  break-inside: avoid;
+  padding: 7px 0;
+  border-bottom: 1px solid #d9e2dd;
+}
+.status-list {
+  max-width: 730px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.75;
+}
+.status-list dt {
+  font-weight: 700;
+  margin-top: 12px;
+}
+.status-list dd {
+  margin: 0;
+  color: #455d5b;
+}

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="What X3Diff compares: the X3D node types in its catalog, the X3D versions it reads, and what a Complete, With notes or Incomplete result means."
+    />
+    <!-- Keep in step with the /coverage.html rule in public/_headers (checked by tests/csp.test.ts). -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; style-src 'self'; script-src 'self'"
+    />
+    <title>X3Diff — What is compared</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/site/site.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="X3Diff home"
+        ><img src="/favicon.svg" width="32" height="32" alt="" />X3<span>Diff</span></a
+      >
+      <nav aria-label="Main navigation">
+        <a href="./">About</a><a href="https://github.com/brunosimoes/X3Diff">GitHub ↗</a
+        ><a class="button small" href="./app.html">Open app <span aria-hidden="true">↗</span></a>
+      </nav>
+    </header>
+    <main id="main" class="coverage">
+      <section class="section">
+        <div class="section-title">
+          <p class="eyebrow">X3D COVERAGE</p>
+          <h1 id="coverage-title">What X3Diff compares</h1>
+          <p>
+            X3Diff compares <strong id="node-count">%X3D_NODE_COUNT%</strong> X3D node types, listed
+            below. It reads XML-encoded X3D 3.0, 3.1, 3.2, 3.3 and 4.0 with a catalog generated from
+            the official X3D 3.3 model and schema. Anything outside the catalog is reported as not
+            compared; it is never passed over in silence.
+          </p>
+        </div>
+        <h2 id="nodes">The %X3D_NODE_COUNT% node types</h2>
+        <p class="coverage-note">
+          For each of these, the typed fields, their defaults, DEF/USE, ROUTE declarations and
+          metadata are compared. Being in the list does not mean external content is fetched or
+          runtime behaviour is evaluated.
+        </p>
+        <ul class="node-list" aria-labelledby="nodes">
+          <!--x3d-node-list-->
+        </ul>
+        <h2>What the status means</h2>
+        <dl class="status-list">
+          <dt>Complete</dt>
+          <dd>
+            Everything in both files is inside the catalog and was compared. The workbench shows no
+            badge for this result.
+          </dd>
+          <dt>With notes</dt>
+          <dd>
+            Everything inside the catalog was compared, with a caveat: for example a file that is
+            not X3D 3.3, or external content that is declared but not loaded.
+          </dd>
+          <dt>Incomplete</dt>
+          <dd>
+            Some content was not compared: a node type outside the list above, an unsupported
+            setting, an invalid value, or objects that could not be matched with confidence. The
+            differences shown are real, but the skipped parts may hide more.
+          </dd>
+          <dt>Failed</dt>
+          <dd>
+            A file could not be read (not well-formed XML, or a version outside 3.0 to 4.0), so
+            nothing was compared.
+          </dd>
+        </dl>
+        <h2>Outside the catalog</h2>
+        <p class="coverage-note">
+          A node type that is not listed is skipped as a whole, together with everything inside it.
+          This includes prototypes (PROTO/EXTERNPROTO), scripts and fog. External scenes and media
+          are declared but never fetched. “No differences found” is meaningful only for the content
+          that was compared, at the tolerances in use.
+        </p>
+        <p class="coverage-note">
+          The geometry views (Slice &amp; measure, Surface deviation, Volume differences) measure
+          Box, Sphere, closed Cylinder and bounded convex IndexedFaceSet shapes under Group and
+          Transform placement. Motion paths follows TimeSensor, PositionInterpolator and
+          OrientationInterpolator animation routed to a Transform.
+        </p>
+        <p class="coverage-note">
+          <a
+            class="text-link"
+            href="https://github.com/brunosimoes/X3Diff/blob/main/docs/X3D_COVERAGE.md"
+            >Full coverage notes on GitHub ↗</a
+          >
+        </p>
+      </section>
+    </main>
+    <footer>
+      <a class="brand" href="./">X3<span>Diff</span></a>
+      <p>Open-source scene review · MIT license</p>
+      <a href="https://github.com/brunosimoes/X3Diff">Source &amp; documentation ↗</a>
+    </footer>
+  </body>
+</html>
