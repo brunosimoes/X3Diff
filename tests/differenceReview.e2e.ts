@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 async function loadPair(page: Page, before: string, after: string) {
-  await page.goto('/app.html');
+  await page.goto('app.html');
   for (const [side, xml] of [
     ['before', before],
     ['after', after],
@@ -88,7 +88,7 @@ test('selected volume pairs expose measured relocation, growth and empty regions
 test('file presence states, expansion, highlighting and focus are separate interactions', async ({
   page,
 }, testInfo) => {
-  await page.goto('/app.html?example=fitlab');
+  await page.goto('app.html?example=fitlab');
   await expect(page.locator('#global-status')).toHaveText('');
   await page.locator('#analysis-tab-differences').click();
   const removed = page.locator('.change-row').filter({ hasText: 'OldSupport' });

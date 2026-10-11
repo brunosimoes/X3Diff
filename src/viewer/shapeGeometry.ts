@@ -130,6 +130,33 @@ export function parsePrimitives(xml: string): Primitive[] {
   return found;
 }
 
+/**
+ * A name a reviewer can tell apart: the Shape's own DEF, otherwise the geometry type plus where
+ * it sits ("IndexedFaceSet in Bracket", "IndexedFaceSet · shape 2 of 3 in Rack",
+ * "IndexedFaceSet · shape 4 of 6 in the file"). Shapes are counted in file order.
+ */
+export function shapeLabel(item: Primitive): string {
+  if (item.def) return item.def;
+  const type = item.geometry.localName;
+  // The nearest named ancestor, if any, says where the shape sits.
+  let owner: Element | null = null;
+  for (
+    let node = item.shape.parentElement;
+    node && node.localName !== 'Scene';
+    node = node.parentElement
+  )
+    if (node.getAttribute('DEF')) {
+      owner = node;
+      break;
+    }
+  const shapes = Array.from(
+    (owner ?? item.shape.ownerDocument).getElementsByTagName('Shape'),
+  );
+  const where = owner ? `in ${owner.getAttribute('DEF')}` : 'in the file';
+  if (shapes.length === 1) return owner ? `${type} ${where}` : type;
+  return `${type} · shape ${shapes.indexOf(item.shape) + 1} of ${shapes.length} ${where}`;
+}
+
 export function affectsShape(path: string, changePath?: string): boolean {
   return (
     !!changePath &&

@@ -8,7 +8,7 @@ const file = (name: string, size: number) => ({
   ),
 });
 
-for (const url of ['/app.html', '/app.html?example=unknown']) {
+for (const url of ['app.html', 'app.html?example=unknown']) {
   test(`Dolphin loads in Differences by default at ${url} and after reload`, async ({ page }) => {
     await page.goto(url);
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -29,7 +29,7 @@ for (const url of ['/app.html', '/app.html?example=unknown']) {
 test('revision icons open file pickers and automatically compare replacements', async ({
   page,
 }) => {
-  await page.goto('/app.html');
+  await page.goto('app.html');
   await expect(page.locator('.inputs')).toHaveCount(0);
   await expect(page.locator('#global-status')).toHaveText('');
   await expect(page.locator('#load-before')).toHaveAttribute('data-state', 'loaded');
@@ -40,9 +40,12 @@ test('revision icons open file pickers and automatically compare replacements', 
   await (await beforeChooser).setFiles(file('original.x3d', 2));
   await expect(page.locator('#load-before')).toHaveAttribute('data-state', 'loaded');
   await expect(page.locator('#load-before')).toHaveAttribute('title', /original.x3d/);
-  await expect(page.locator('#global-status')).toHaveText('');
-  await expect(page.locator('[data-view="diff"]')).toHaveAttribute('aria-pressed', 'true');
-  await page.locator('[data-view="before"]').click();
+  // The example's other half is gone: the file waits for its own After (tests/loadButtons.e2e.ts).
+  await expect(page.locator('#load-after')).toHaveAttribute('data-state', 'missing');
+  await expect(page.locator('#global-status')).toHaveText(
+    'Before is loaded. Choose the After file to compare.',
+  );
+  await expect(page.locator('[data-view="before"]')).toHaveAttribute('aria-pressed', 'true');
   const afterChooser = page.waitForEvent('filechooser');
   await page.locator('#load-after').click();
   await (await afterChooser).setFiles(file('revision.x3d', 4));
@@ -74,7 +77,7 @@ test('revision icons open file pickers and automatically compare replacements', 
 test('a failed read leaves its icon missing and replacement recovers automatically', async ({
   page,
 }) => {
-  await page.goto('/app.html');
+  await page.goto('app.html');
   await page.locator('#after-file').setInputFiles(file('after.x3d', 4));
   await page.locator('#before-file').setInputFiles({
     name: 'wrong.x3d',
@@ -100,7 +103,7 @@ test('a superseded file read cannot replace the latest automatic comparison', as
       });
     };
   });
-  await page.goto('/app.html');
+  await page.goto('app.html');
   await page.locator('#before-file').setInputFiles(file('before.x3d', 2));
   await page.locator('#after-file').setInputFiles(file('slow.x3d', 99));
   await page.waitForFunction(() => !!(window as any).releaseSlowRead);

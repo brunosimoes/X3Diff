@@ -6,7 +6,7 @@ async function highlighted(page: Page, node: string, pane = 'diff') {
       const scene = (document.querySelector(`#viewer-${pane} x3d-canvas`) as any)?.browser
         ?.currentScene;
       try {
-        return !!scene.getNamedNode(node).getField('bboxDisplay').getValue().valueOf();
+        return scene.getNamedNode(node).bboxDisplay === true;
       } catch {
         return false;
       }
@@ -18,7 +18,7 @@ async function highlighted(page: Page, node: string, pane = 'diff') {
 test('analysis object selectors highlight the matching scene object across views and volume mode', async ({
   page,
 }) => {
-  await page.goto('/app.html');
+  await page.goto('app.html');
   for (const [side, size] of [
     ['before', 2],
     ['after', 3],

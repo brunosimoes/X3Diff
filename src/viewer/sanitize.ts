@@ -1,5 +1,6 @@
 import { prescan } from '../x3d/prescan';
 import { catalog } from '../x3d/catalog';
+import { LIGHTS } from '../x3d/lights';
 export type SanitizedPreview = { xml: string; notices: string[]; pathToCue: Map<string, string> };
 
 const URL_NODES = new Set([
@@ -11,8 +12,24 @@ const URL_NODES = new Set([
   'ShaderProgram',
 ]);
 
+// One comparison sanitises the same two revisions up to eight times (previews,
+// overlay, section and volume readers). Remember the latest few results.
+const recent = new Map<string, SanitizedPreview>();
+const RECENT_LIMIT = 4;
+
 /** Creates a renderer-only copy. Never pass user XML directly to X_ITE. */
 export function sanitizePreview(source: string): SanitizedPreview {
+  let result = recent.get(source);
+  if (!result) {
+    result = sanitize(source);
+    recent.set(source, result);
+    if (recent.size > RECENT_LIMIT) recent.delete(recent.keys().next().value!);
+  }
+  // Callers own and may mutate what they receive.
+  return { xml: result.xml, notices: [...result.notices], pathToCue: new Map(result.pathToCue) };
+}
+
+function sanitize(source: string): SanitizedPreview {
   const blocked = prescan(source, 'before');
   if (blocked.length) throw new Error(blocked.map((d) => d.message).join(' '));
   const doc = new DOMParser().parseFromString(source, 'application/xml');
@@ -49,11 +66,19 @@ export function sanitizePreview(source: string): SanitizedPreview {
     'ROUTE',
     ...Object.keys(catalog),
   ]);
+  // The first NavigationInfo is the one a browser binds. Its headlight switch is the only
+  // navigation setting that changes how the scene is lit.
+  const headlightOff =
+    doc.getElementsByTagName('NavigationInfo')[0]?.getAttribute('headlight') === 'false';
   for (const node of Array.from(doc.getElementsByTagName('*'))) {
     const name = node.localName;
     if (name === 'Script') {
       node.remove();
       notices.add('Script nodes are disabled in the preview.');
+    } else if (name === 'NavigationInfo') {
+      // Compared, but not applied: the workbench keeps its own orbit navigation in every view.
+      node.remove();
+      notices.add('Navigation settings are compared but not applied in the preview.');
     } else if (name === 'Anchor') {
       node.remove();
       notices.add('Anchor navigation is disabled in the preview.');
@@ -81,6 +106,20 @@ export function sanitizePreview(source: string): SanitizedPreview {
         }
       }
     }
+  }
+  // Show the scene under its own lights when it turns the headlight off and brings a light
+  // that is switched on. Without one the preview keeps the headlight, so it is never black.
+  if (
+    scene &&
+    headlightOff &&
+    Array.from(doc.getElementsByTagName('*')).some(
+      (node) => LIGHTS.has(node.localName) && node.getAttribute('on') !== 'false',
+    )
+  ) {
+    const navigation = doc.createElementNS(scene.namespaceURI, 'NavigationInfo');
+    navigation.setAttribute('headlight', 'false');
+    scene.prepend(navigation);
+    notices.add('The headlight is off, as the file asks: the scene is lit by its own lights.');
   }
   const remainingDefs = new Set(
     Array.from(doc.getElementsByTagName('*'))

@@ -1,9 +1,10 @@
 import { updateObjectChoice } from './objectChoice';
+import { SECTION_LIMITS, SECTION_SHORT, limitsMarkup } from '../report/limits';
 import { readAnalysisGeometry, type AnalysisPair } from '../viewer/analysisGeometry';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { ChangeRecord, X3DiffReport } from '../report/schema';
-import { parsePrimitives, affectsShape } from '../viewer/shapeGeometry';
+import { parsePrimitives, affectsShape, shapeLabel } from '../viewer/shapeGeometry';
 import {
   sliceGeometry,
   closestOnSection,
@@ -59,7 +60,7 @@ export class LinkedSections {
     host.innerHTML = `<div class="linked-heading"><p>Move a shared slice through the revisions and measure their outlines.</p></div>
       <div id="sections-content"><div class="section-controls"><label>Object <select id="section-object"></select></label><label>Slice <select id="section-axis"><option value="2">XY · Front</option><option value="1">XZ · Top</option><option value="0">ZY · Side</option></select></label><label class="slice-slider">Position <input id="section-position" type="range" min="1" max="999" value="500" aria-label="Slice position"/></label><output id="section-level"></output><button class="button quiet" id="section-reset">Reset view</button></div>
       <p id="section-status" role="status"></p><div class="linked-views"><div class="linked-card"><div class="linked-card-title">3D location <small>Drag to orbit · Click a surface to place the slice</small></div><div id="section-3d" aria-label="Linked 3D object view"></div></div><div class="linked-card"><div class="linked-card-title">2D cross-section <small>Click two outline points to measure</small></div><svg id="section-2d" role="img" aria-label="Before and after cross-section outlines"></svg></div></div>
-      <div class="section-results"><span class="section-key"><i></i>Before <i></i>After</span><span id="section-size"></span><button class="button quiet" id="section-clear">Clear ruler</button></div><p id="section-measure" aria-live="polite"></p><p class="section-footnote">World coordinates · Scene units · Static geometry · No automatic alignment. Curved primitives use tessellated surfaces. Section dimensions are extents, not surface distances.</p></div>`;
+      <div class="section-results"><span class="section-key"><i></i>Before <i></i>After</span><span id="section-size"></span><button class="button quiet" id="section-clear">Clear ruler</button></div><p id="section-measure" aria-live="polite"></p>${limitsMarkup(SECTION_SHORT, SECTION_LIMITS)}</div>`;
     this.scene.background = new THREE.Color('#101c29');
     this.scene.add(this.models, this.guides);
     this.q('#section-object').addEventListener('change', () => {
@@ -162,7 +163,7 @@ export class LinkedSections {
         this.pairs.push({
           before: item,
           after: match,
-          label: item.def ?? `${item.geometry.localName} · ${item.path}`,
+          label: shapeLabel(item),
         });
       }
       this.q('#section-object').replaceChildren(

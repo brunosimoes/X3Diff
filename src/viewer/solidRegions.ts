@@ -8,6 +8,7 @@ import {
   worldMatrix,
   primitiveGeometry,
   affectsShape,
+  shapeLabel,
   type Primitive,
   type VolumeResolution,
 } from './shapeGeometry';
@@ -116,8 +117,8 @@ export function buildSolidRegions(
   resolution: VolumeResolution = 'medium',
   selected?: { before: string; after: string },
 ): SolidRegionsResult | null {
-  if (report.summary.status !== 'complete' && report.summary.status !== 'completeWithWarnings')
-    return null;
+  // Incomplete reports are allowed: pairs touched by an uncertain match are excluded below.
+  if (report.summary.status === 'failed') return null;
   const before = parsePrimitives(beforeXML);
   const after = parsePrimitives(afterXML);
   const sameObject = (b: Primitive, a: Primitive): boolean => {
@@ -251,7 +252,7 @@ export function buildSolidRegions(
       };
       return {
         ...compose(doc),
-        label: pair.b.def ?? 'IndexedFaceSet',
+        label: shapeLabel(pair.b),
         triangleCounts,
         volumes: {
           beforeOnly: results[0].userData.occupiedVolume,
@@ -333,7 +334,7 @@ export function buildSolidRegions(
     );
     return {
       ...compose(doc),
-      label: pair.b.def ?? pair.b.geometry.localName,
+      label: shapeLabel(pair.b),
       triangleCounts,
       volumes: {
         beforeOnly: enclosedVolume(beforeOnly),

@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test('surface deviation supports both directions and reuses its renderer', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto('/app.html');
+  await page.goto('app.html');
   await page.locator('#demo-trigger').click();
   await page.locator('[data-demo="dolphin"]').click();
   await expect(page.locator('#analysis-tab-deviation')).toBeVisible();

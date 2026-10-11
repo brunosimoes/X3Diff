@@ -6,7 +6,7 @@ test('linked sections measure outlines, update plane and survive new examples', 
 }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto('/app.html');
+  await page.goto('app.html');
   await page.locator('#demo-trigger').click();
   await page.locator('[data-demo="dolphin"]').click();
   await expect(page.locator('#global-status')).toHaveText('');
@@ -49,7 +49,7 @@ test('linked sections measure outlines, update plane and survive new examples', 
 });
 
 test('known box dimensions and 3D picking update the linked slice', async ({ page }) => {
-  await page.goto('/app.html');
+  await page.goto('app.html');
   const xml = (size: number) =>
     `<X3D version="3.3" profile="Interchange"><Scene><Shape DEF="Block"><Box size="${size} 2 2"/></Shape></Scene></X3D>`;
   for (const [side, size] of [
@@ -80,7 +80,7 @@ test('known box dimensions and 3D picking update the linked slice', async ({ pag
 });
 
 test('unsupported concave faces do not offer a sections tab', async ({ page }) => {
-  await page.goto('/app.html');
+  await page.goto('app.html');
   const xml = (x: number) =>
     `<X3D version="3.3" profile="Interchange"><Scene><Shape DEF="Face"><IndexedFaceSet convex="false" coordIndex="0 1 2 -1"><Coordinate point="0 0 0 ${x} 0 0 0 2 0"/></IndexedFaceSet></Shape></Scene></X3D>`;
   for (const [side, x] of [

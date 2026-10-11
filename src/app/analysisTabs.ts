@@ -139,6 +139,18 @@ export class AnalysisTabs {
     if (!this.settings.hidden) this.renderOptions();
   }
 
+  /**
+   * Show the tab with this id if it is on offer for the current comparison. For links that
+   * ask for a view: the remembered choice is left alone, and an unknown, hidden or
+   * unavailable id changes nothing.
+   */
+  open(id: string): boolean {
+    const tab = this.tabs.find((item) => item.id === id);
+    if (!tab || !this.list.querySelector(`#analysis-tab-${tab.id}`)) return false;
+    this.select(tab);
+    return true;
+  }
+
   clear() {
     this.select(undefined);
     this.host.hidden = true;

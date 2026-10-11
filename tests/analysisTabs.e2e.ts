@@ -20,7 +20,7 @@ async function compare(page: Page, geometry = true) {
 test('tabs hide unavailable data and restore the preferred view when data returns', async ({
   page,
 }) => {
-  await page.goto('/app.html');
+  await page.goto('app.html');
   await expect(page.locator('#global-status')).toHaveText('');
   await expect(page.locator('.analysis-panel')).toBeVisible();
   await compare(page);
@@ -42,7 +42,7 @@ test('tabs hide unavailable data and restore the preferred view when data return
 });
 
 test('tab customization is persistent, resettable, and keyboard accessible', async ({ page }) => {
-  await page.goto('/app.html');
+  await page.goto('app.html');
   await compare(page);
   await page.locator('#analysis-customize').click();
   await expect(page.getByRole('checkbox', { name: 'Show File differences' })).toBeDisabled();
@@ -70,7 +70,7 @@ test('tab customization is persistent, resettable, and keyboard accessible', asy
 });
 
 test('a registered extension is isolated when activation fails', async ({ page }) => {
-  await page.goto('/app.html');
+  await page.goto('app.html');
   await page.evaluate(async () => {
     const path = '/src/app/analysisTabs.ts';
     const { AnalysisTabs } = await import(path);

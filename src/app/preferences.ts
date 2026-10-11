@@ -25,3 +25,13 @@ export function savePreferences(value: ViewerPreferences): void {
     /* Settings still work in memory if storage is unavailable. */
   }
 }
+
+export type Theme = 'light' | 'dark';
+/**
+ * The theme the workbench opens in. A choice saved with the theme button always wins.
+ * Without one it follows the landing page, which is light, unless the system asks for dark.
+ */
+export function initialTheme(saved: string | null, systemPrefersDark: boolean): Theme {
+  if (saved === 'light' || saved === 'dark') return saved;
+  return systemPrefersDark ? 'dark' : 'light';
+}

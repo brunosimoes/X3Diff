@@ -1,15 +1,26 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 const fixture = readFileSync(
   new URL('../fixtures/security/external-resources.x3d', import.meta.url),
   'utf8',
 );
 
+async function waitForComparison(page: Page) {
+  const workspace = page.locator('.review-workspace');
+  // Complex examples can take longer with software WebGL and shared CI CPUs.
+  await expect(workspace).toBeVisible({ timeout: 90_000 });
+  await expect(workspace).toHaveAttribute('aria-busy', 'false', { timeout: 90_000 });
+  await expect(page.locator('#global-status')).toHaveText('');
+}
+
 test('all examples render, volume works, and canvases survive repeated comparisons', async ({
   page,
 }) => {
-  await page.goto('/app.html');
-  await expect(page.locator('#global-status')).toHaveText('');
+  // Keep repeated WebGL rendering bounded on software-rendered CI browsers.
+  // Responsive layout checks exercise the larger desktop and phone viewports.
+  await page.setViewportSize({ width: 960, height: 720 });
+  await page.goto('app.html');
+  await waitForComparison(page);
   await page.waitForFunction(() =>
     Array.from(document.querySelectorAll('x3d-canvas')).every((n) => (n as any).browser),
   );
@@ -20,8 +31,7 @@ test('all examples render, volume works, and canvases survive repeated compariso
     await page.locator(`[data-view="${demo === 'forgeworks' ? 'after' : 'before'}"]`).click();
     await page.locator('#demo-trigger').click();
     await page.locator('[data-demo="' + demo + '"]').click();
-    await expect(page.locator('.review-workspace')).toBeVisible();
-    await expect(page.locator('#global-status')).toHaveText('');
+    await waitForComparison(page);
     await expect(page.locator('#global-status')).not.toHaveClass(/error/);
     await expect(page.locator('[data-view="diff"]')).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('#viewer-diff')).toBeVisible();
@@ -47,8 +57,7 @@ test('all examples render, volume works, and canvases survive repeated compariso
     await page.locator(`[data-view="${i % 2 ? 'before' : 'after'}"]`).click();
     await page.locator('#settings-trigger').click();
     await page.locator('#apply-settings').click();
-    await expect(page.locator('.review-workspace')).toBeVisible();
-    await expect(page.locator('#global-status')).toHaveText('');
+    await waitForComparison(page);
     await expect(page.locator('[data-view="diff"]')).toHaveAttribute('aria-pressed', 'true');
   }
   expect(
@@ -68,7 +77,7 @@ test('sanitizes hostile XML before renderer import without content network reque
 }) => {
   const requests: string[] = [];
   page.on('request', (r) => requests.push(r.url()));
-  await page.goto('/app.html');
+  await page.goto('app.html');
   const result = await page.evaluate(async (xml) => {
     const path = '/src/viewer/sanitize.ts';
     const { sanitizePreview } = await import(path);
@@ -102,7 +111,7 @@ test('sanitizes hostile XML before renderer import without content network reque
 });
 
 test('overlay and solid-region builders retain added and removed geometry', async ({ page }) => {
-  await page.goto('/app.html');
+  await page.goto('app.html');
   const result = await page.evaluate(async () => {
     const cp = '/src/diff/compare.ts',
       dp = '/src/viewer/diffScene.ts',
@@ -142,7 +151,7 @@ test('automatic comparisons can be cancelled while waiting for a worker', async 
       body: 'self.onmessage = () => {};',
     }),
   );
-  await page.goto('/app.html');
+  await page.goto('app.html');
   const xml =
     '<X3D version="3.3"><Scene><Group>' + '<Shape><Box/></Shape>' + '</Group></Scene></X3D>';
   for (const side of ['before', 'after'])
@@ -159,7 +168,7 @@ test('automatic comparisons can be cancelled while waiting for a worker', async 
 });
 
 test('preview rejects excessive nesting and preserves USE declarations', async ({ page }) => {
-  await page.goto('/app.html');
+  await page.goto('app.html');
   const result = await page.evaluate(async () => {
     const path = '/src/viewer/sanitize.ts';
     const { sanitizePreview } = await import(path);
@@ -187,33 +196,43 @@ test('remembers display, region and layout across comparisons, examples and relo
   const load = async (demo: string) => {
     await page.locator('#demo-trigger').click();
     await page.locator(`[data-demo="${demo}"]`).click();
-    await expect(page.locator('.review-workspace')).toBeVisible();
-    await expect(page.locator('#global-status')).toHaveText('');
+    await waitForComparison(page);
   };
-  await page.goto('/app.html');
+  await page.goto('app.html');
+  await waitForComparison(page);
+  // Every example opens side by side until the reviewer chooses otherwise.
+  await expect(page.locator('.review-workspace')).not.toHaveClass(/expanded/);
   await load('fitlab');
+  await expect(page.locator('.review-workspace')).not.toHaveClass(/expanded/);
   await page.locator('#analysis-tab-differences').click();
   await page.locator('#expand').click();
+  await expect(page.locator('.review-workspace')).toHaveClass(/expanded/);
   await page.locator('#settings-trigger').click();
   await page.locator('#apply-settings').click();
-  await expect(page.locator('#global-status')).toHaveText('');
+  await waitForComparison(page);
   await expect(page.locator('#viewer-diff')).toBeVisible();
-  await expect(page.locator('.review-workspace')).not.toHaveClass(/expanded/);
-  await load('forgeworks');
+  await expect(page.locator('.review-workspace')).toHaveClass(/expanded/);
+  await load('example');
   await page.locator('[data-view="diff"]').click();
   await expect(page.locator('#viewer-diff')).toBeVisible();
-  await expect(page.locator('.review-workspace')).not.toHaveClass(/expanded/);
+  await expect(page.locator('.review-workspace')).toHaveClass(/expanded/);
   await page.reload();
+  await waitForComparison(page);
+  await expect(page.locator('.review-workspace')).toHaveClass(/expanded/);
   await load('fitlab');
   await expect(page.locator('#viewer-diff')).toBeVisible();
-  await expect(page.locator('.review-workspace')).not.toHaveClass(/expanded/);
+  await expect(page.locator('.review-workspace')).toHaveClass(/expanded/);
   await page.locator('#analysis-tab-volume').click();
   await expect(page.locator('#region')).toBeVisible();
   await page.locator('[data-region="shared"]').click();
   await page.locator('#expand').click();
+  await expect(page.locator('.review-workspace')).not.toHaveClass(/expanded/);
   await page.reload();
+  await waitForComparison(page);
+  await load('forgeworks');
+  await expect(page.locator('.review-workspace')).not.toHaveClass(/expanded/);
   await load('fitlab');
 
   await expect(page.locator('[data-region="shared"]')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('.review-workspace')).toHaveClass(/expanded/);
+  await expect(page.locator('.review-workspace')).not.toHaveClass(/expanded/);
 });

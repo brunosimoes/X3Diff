@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test('volume resolution rebuilds curved regions and persists after reload', async ({ page }) => {
-  await page.goto('/app.html');
+  await page.goto('app.html');
   for (const [side, radius] of [
     ['before', 1],
     ['after', 1.2],
@@ -55,7 +55,7 @@ test('volume resolution rebuilds curved regions and persists after reload', asyn
 });
 
 test('dolphin mesh volume responds to the resolution setting', async ({ page }) => {
-  await page.goto('/app.html?example=dolphin');
+  await page.goto('app.html?example=dolphin');
   await expect(page.locator('#global-status')).toHaveText('');
   await page.locator('#analysis-tab-volume').click();
   await expect(page.locator('#volume-status')).not.toHaveText('Preparing volume overlap…');

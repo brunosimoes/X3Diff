@@ -1,12 +1,12 @@
 import type { ChangeRecord, X3DiffReport } from "../report/schema";
 import { sanitizePreview } from "./sanitize";
+import { affectsShape } from "./shapeGeometry";
 
 type Side = "before" | "after";
 type ShapeState = "unchanged" | "changed" | "added" | "removed";
 export interface DiffSceneResult {
   xml: string;
   shapeCounts: Record<ShapeState, number>;
-  notices: string[];
   cueByChangeId: Record<string, string>;
 }
 
@@ -19,18 +19,15 @@ const PALETTE: Record<ShapeState | "beforeChanged", { diffuse: string; glow: str
 };
 
 const VISUAL_CATEGORIES = new Set(["geometry", "material", "appearance", "transform", "structure"]);
-const INERT_NODES = new Set(["ROUTE", "TimeSensor", "TouchSensor", "BooleanFilter", "BooleanTrigger", "IntegerTrigger", "TimeTrigger", "ColorInterpolator", "OrientationInterpolator", "ScalarInterpolator"]);
-
-function mapsToShape(shapePath: string, changePath?: string): boolean {
-  return !!changePath && (shapePath === changePath || shapePath.startsWith(`${changePath}/`) || changePath.startsWith(`${shapePath}/`));
-}
+// Lights are left out as well: the overlay's colour code needs the same neutral lighting for every pair.
+const INERT_NODES = new Set(["DirectionalLight", "PointLight", "SpotLight", "ROUTE", "TimeSensor", "TouchSensor", "BooleanFilter", "BooleanTrigger", "IntegerTrigger", "TimeTrigger", "ColorInterpolator", "OrientationInterpolator", "ScalarInterpolator", "PositionInterpolator", "IntegerSequencer"]);
 
 function classify(path: string, side: Side, changes: ChangeRecord[]): ShapeState {
   let changed = false;
   for (const change of changes) {
     if (change.confidence === "low") continue;
     const target = side === "before" ? change.beforeNode?.path : change.afterNode?.path;
-    if (!mapsToShape(path, target)) continue;
+    if (!affectsShape(path, target)) continue;
     if (side === "before" && change.kind === "nodeRemoved") return "removed";
     if (side === "after" && change.kind === "nodeAdded") return "added";
     if (VISUAL_CATEGORIES.has(change.category)) changed = true;
@@ -89,7 +86,8 @@ function prefixNames(scene: Element, prefix: string): void {
 
 /** A visual explanation of mapped Shape changes, built only from sanitized local XML. */
 export function buildDiffScene(beforeXML: string, afterXML: string, report: X3DiffReport): DiffSceneResult {
-  if (report.summary.status !== "complete" && report.summary.status !== "completeWithWarnings") throw new Error("A complete X3D 3.3 report is required for the change scene.");
+  // An incomplete report still maps the changes it found; the workbench labels the result as partial.
+  if (report.summary.status === "failed") throw new Error("A readable X3D 3.3 pair is required for the change scene.");
   const beforeSafe = sanitizePreview(beforeXML);
   const afterSafe = sanitizePreview(afterXML);
   const parser = new DOMParser();
@@ -118,7 +116,7 @@ export function buildDiffScene(beforeXML: string, afterXML: string, report: X3Di
       const def = node.getAttribute("DEF");
       if (def && state !== "unchanged") for (const change of report.changes) {
         const target = side === "before" ? change.beforeNode?.path : change.afterNode?.path;
-        if (mapsToShape(sourcePath, target) && (side === "after" || !cueByChangeId[change.id])) cueByChangeId[change.id] = `${side === "before" ? "B_" : "A_"}${def}`;
+        if (affectsShape(sourcePath, target) && (side === "after" || !cueByChangeId[change.id])) cueByChangeId[change.id] = `${side === "before" ? "B_" : "A_"}${def}`;
       }
       tint(node, state, side, result);
     }
@@ -137,7 +135,6 @@ export function buildDiffScene(beforeXML: string, afterXML: string, report: X3Di
   return {
     xml: new XMLSerializer().serializeToString(result),
     shapeCounts: counts,
-    notices: [...new Set([...beforeSafe.notices, ...afterSafe.notices])],
     cueByChangeId,
   };
 }

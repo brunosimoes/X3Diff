@@ -16,9 +16,9 @@ export class X3DPane {
   private loadRevision = 0;
   private pendingLoad: Promise<void> = Promise.resolve();
   private pathToCue = new Map<string, string>();
-  private activeCues: Array<{ field: any; value: boolean; name: string }> = [];
+  private activeCues: Array<{ node: any; value: boolean; name: string }> = [];
   private sourceXml = '';
-  private animationClocks: string[] = [];
+  private animationClocks: Array<{ name: string; enabled: boolean }> = [];
   private animationsEnabled = true;
   private hasAuthoredView = false;
   private theme: 'light' | 'dark' = 'light';
@@ -36,6 +36,8 @@ export class X3DPane {
     const canvas = document.createElement('x3d-canvas') as X3DCanvas;
     canvas.setAttribute('contentScale', '1');
     canvas.setAttribute('splashScreen', 'false');
+    // X_ITE otherwise floats each viewpoint/world description over the scene.
+    canvas.setAttribute('notifications', 'false');
     canvas.setAttribute(
       'aria-label',
       `${this.label} X3D preview; use pointer controls to orbit and zoom`,
@@ -96,10 +98,16 @@ export class X3DPane {
       background.setAttribute('DEF', this.backgroundName);
       background.setAttribute('skyColor', this.theme === 'dark' ? '.055 .085 .12' : '.91 .94 .95');
       parsed.getElementsByTagName('Scene')[0].prepend(background);
-      this.hasAuthoredView = parsed.getElementsByTagName('Viewpoint').length > 0;
+      this.hasAuthoredView =
+        parsed.getElementsByTagName('Viewpoint').length +
+          parsed.getElementsByTagName('OrthoViewpoint').length >
+        0;
       this.animationClocks = Array.from(parsed.getElementsByTagName('TimeSensor'))
-        .map((n) => n.getAttribute('DEF'))
-        .filter((n): n is string => !!n);
+        .filter((n) => !!n.getAttribute('DEF'))
+        .map((n) => ({
+          name: n.getAttribute('DEF')!,
+          enabled: n.getAttribute('enabled') !== 'false',
+        }));
       const scene = await browser.importDocument(parsed);
       if (revision !== this.loadRevision) {
         scene.dispose?.();
@@ -117,7 +125,7 @@ export class X3DPane {
       if (revision !== this.loadRevision) return;
       this.setAnimationEnabled(this.animationsEnabled);
       this.setTheme(this.theme);
-      if (!parsed.getElementsByTagName('Viewpoint').length) browser.viewAll?.();
+      if (!this.hasAuthoredView) browser.viewAll?.();
       await browser.nextFrame?.();
       if (revision !== this.loadRevision) return;
       const activeScene = browser.currentScene;
@@ -148,17 +156,16 @@ export class X3DPane {
     const scene = this.canvas.browser?.currentScene;
     if (!scene || !this.backgroundName) return;
     try {
-      scene
-        .getNamedNode(this.backgroundName)
-        .getField('skyColor')
-        .fromString(theme === 'dark' ? '.055 .085 .12' : '.91 .94 .95', scene);
+      const [r, g, b] = theme === 'dark' ? [0.055, 0.085, 0.12] : [0.91, 0.94, 0.95];
+      Object.assign(scene.getNamedNode(this.backgroundName).skyColor[0], { r, g, b });
     } catch {}
   }
   setAnimationEnabled(enabled: boolean): void {
     this.animationsEnabled = enabled;
-    for (const name of this.animationClocks) {
+    for (const { name, enabled: authoredEnabled } of this.animationClocks) {
       try {
-        this.canvas.browser?.currentScene?.getNamedNode(name).getField('enabled').setValue(enabled);
+        const clock = this.canvas.browser?.currentScene?.getNamedNode(name);
+        if (clock) clock.enabled = enabled && authoredEnabled;
       } catch {}
     }
   }
@@ -176,17 +183,15 @@ export class X3DPane {
     if (context) visible.push('BEFORE_CONTEXT', 'AFTER_CONTEXT');
     for (const name of ['BEFORE_ONLY', 'SHARED', 'AFTER_ONLY', 'BEFORE_CONTEXT', 'AFTER_CONTEXT']) {
       try {
-        this.canvas.browser?.currentScene
-          ?.getNamedNode(`X3DIFF_${name}_VISIBILITY`)
-          .getField('whichChoice')
-          .setValue(visible.includes(name) ? 0 : -1);
+        const toggle = this.canvas.browser?.currentScene?.getNamedNode(`X3DIFF_${name}_VISIBILITY`);
+        if (toggle) toggle.whichChoice = visible.includes(name) ? 0 : -1;
       } catch {}
     }
   }
   clearCue(): void {
     for (const cue of this.activeCues)
       try {
-        cue.field.setValue(cue.value);
+        cue.node.bboxDisplay = cue.value;
       } catch {}
     this.activeCues = [];
   }
@@ -206,11 +211,11 @@ export class X3DPane {
     if (!names.size) for (const { defName } of targets) if (defName) names.add(defName);
     for (const name of names) {
       try {
-        const bbox = scene.getNamedNode?.(name)?.getField?.('bboxDisplay');
-        if (!bbox) continue;
-        const value = !!bbox.getValue?.().valueOf?.();
-        bbox.setValue(true);
-        this.activeCues.push({ field: bbox, value, name });
+        const node = scene.getNamedNode?.(name);
+        if (typeof node?.bboxDisplay !== 'boolean') continue;
+        const value: boolean = node.bboxDisplay;
+        node.bboxDisplay = true;
+        this.activeCues.push({ node, value, name });
       } catch {}
     }
     return this.activeCues.length > 0;

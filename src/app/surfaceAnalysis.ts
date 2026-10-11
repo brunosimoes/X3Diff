@@ -1,4 +1,5 @@
 import { updateObjectChoice } from './objectChoice';
+import { SURFACE_LIMITS, SURFACE_SHORT, limitsMarkup } from '../report/limits';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { readAnalysisGeometry, type AnalysisPair } from '../viewer/analysisGeometry';
@@ -32,9 +33,6 @@ export class SurfaceAnalysis {
   get hasData() {
     return this.pairs.length > 0;
   }
-  private host() {
-    return this.heat;
-  }
   private q<T extends Element = HTMLElement>(selector: string) {
     return this.heat.querySelector<T>(selector)!;
   }
@@ -43,7 +41,7 @@ export class SurfaceAnalysis {
     private onSelectPair: (pair: AnalysisPair) => void = () => {},
   ) {
     heat.innerHTML = `<div class="surface-controls"><label>Object <select class="surface-object" aria-label="Surface object"></select></label><label>Surface <select class="surface-direction"><option value="0">Before → after</option><option value="1">After → before</option></select></label><button class="button quiet surface-fit">Fit</button></div>
-      <div class="surface-body" hidden><div class="surface-views"><div class="surface-frame"><div class="surface-3d" aria-label="Surface deviation 3D view"></div><div class="surface-hud"><p class="surface-status" role="status"></p><div class="surface-scale"><span>0</span><i></i><span class="surface-max"></span><span>scene units</span></div><div class="surface-stats"></div></div></div></div><p class="surface-pick" aria-live="polite"></p><p class="surface-note">Unsigned nearest-surface distance sampled once per triangle, at its centre. Each face has one colour. Mean and RMS are area-weighted; maximum is sampled, not an exact worst case. Inspect both directions. World coordinates; no automatic alignment.</p></div>`;
+      <div class="surface-body" hidden><div class="surface-views"><div class="surface-frame"><div class="surface-3d" aria-label="Surface deviation 3D view"></div><div class="surface-hud"><p class="surface-status" role="status"></p><div class="surface-scale"><span>0</span><i></i><span class="surface-max"></span><span>scene units</span></div><div class="surface-stats"></div></div></div></div><p class="surface-pick" aria-live="polite"></p>${limitsMarkup(SURFACE_SHORT, SURFACE_LIMITS)}</div>`;
     this.q('.surface-object').addEventListener('change', () => {
       this.index = Number(this.q<HTMLSelectElement>('.surface-object').value);
       this.cached = -1;
@@ -143,7 +141,7 @@ export class SurfaceAnalysis {
       if (this.pending !== pending) return;
       this.pending = undefined;
     }
-    if (this.host().hidden || this.cached !== this.index) return;
+    if (this.heat.hidden || this.cached !== this.index) return;
     this.q('.surface-status').textContent =
       'Hover to inspect a face. Click to pin; Escape to clear.';
     this.q<HTMLElement>('.surface-body').hidden = false;
@@ -282,7 +280,7 @@ export class SurfaceAnalysis {
   }
 
   private fit() {
-    if (!this.controls || !this.model.children.length || this.host().hidden) return;
+    if (!this.controls || !this.model.children.length || this.heat.hidden) return;
     this.resize();
     const bounds = new THREE.Box3().setFromObject(this.model),
       center = bounds.getCenter(new THREE.Vector3());
@@ -302,7 +300,7 @@ export class SurfaceAnalysis {
     this.render();
   }
   private resize() {
-    if (!this.renderer || this.host().hidden) return;
+    if (!this.renderer || this.heat.hidden) return;
     const host = this.q<HTMLElement>('.surface-3d'),
       width = host.clientWidth,
       height = host.clientHeight;
@@ -314,7 +312,7 @@ export class SurfaceAnalysis {
     this.render();
   }
   private render() {
-    if (this.renderer && !this.host().hidden) this.renderer.render(this.scene, this.camera);
+    if (this.renderer && !this.heat.hidden) this.renderer.render(this.scene, this.camera);
   }
   private dispose(group: THREE.Group) {
     for (const object of [...group.children]) {
