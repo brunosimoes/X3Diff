@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
-test('published assets, video playback and the downloaded report work under the configured base', async ({
+test('published assets and the downloaded report work under the configured base', async ({
   page,
   baseURL,
 }) => {
@@ -13,24 +13,11 @@ test('published assets, video playback and the downloaded report work under the 
   });
 
   await page.goto('./');
-  const video = page.locator('video');
-  await video.scrollIntoViewIfNeeded();
-  await video.evaluate(async (element: HTMLVideoElement) => {
-    element.muted = true;
-    await element.play();
-  });
-  await expect
-    .poll(() => video.evaluate((element: HTMLVideoElement) => element.currentTime))
-    .toBeGreaterThan(0);
-  await video.evaluate((element: HTMLVideoElement) => element.pause());
-
   await page.goto('app.html?example=example');
-  await expect(page.locator('.review-workspace')).toHaveAttribute('aria-busy', 'false');
-  await expect(page.locator('#global-status')).toHaveText('');
-  await expect(page.locator('#viewer-diff .viewer-state')).toHaveText('');
+  await expect(page.locator('.workspace')).toHaveAttribute('aria-busy', 'false');
+  await expect(page.locator('#stage .viewer-state')).toHaveText('');
   const downloaded = page.waitForEvent('download');
-  await page.locator('#export').click();
-  await page.locator('[data-export="json"]').click();
+  await page.selectOption('#export', 'json');
   const download = await downloaded;
   expect(download.suggestedFilename()).toBe('Objects-original__Objects-revised.x3diff.json');
   const report = JSON.parse(await readFile((await download.path())!, 'utf8'));

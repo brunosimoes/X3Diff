@@ -44,3 +44,15 @@ export function summarizeVolumes(volumes: RegionVolumes) {
     retained: before > 0 ? (volumes.shared / before) * 100 : null,
   };
 }
+
+/** A comparison needs positive volume on both sides; individual regions may be zero. */
+export function hasMeasurableVolumes(volumes: RegionVolumes): boolean {
+  if (
+    [volumes.beforeOnly, volumes.shared, volumes.afterOnly].some(
+      (value) => !Number.isFinite(value) || value < 0,
+    )
+  )
+    return false;
+  const { before, after } = summarizeVolumes(volumes);
+  return Number.isFinite(before) && Number.isFinite(after) && before > 0 && after > 0;
+}

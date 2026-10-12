@@ -266,7 +266,7 @@ describe('other everyday nodes', () => {
       expect(r.summary.status).toBe('complete');
       expect(rows(r)).toEqual([expected]);
     }
-    // Defaults count for the newly catalogued OrthoViewpoint too.
+    // OrthoViewpoint defaults are compared.
     expect(
       diff(
         '<OrthoViewpoint/>',

@@ -59,7 +59,7 @@ describe('curated inputs',()=>{
   it('stops at a version it does not know',()=>{
     for(const version of ['5.0','2.0','']){
       const r=compareX3D(read('version/before.x3d'),read('version/after.x3d').replace("version='4.0'",`version='${version}'`));
-      expect(r.summary.status).toBe('incomplete');expect(r.changes).toHaveLength(0);expect(r.diagnostics.map(d=>d.code)).toContain('VERSION_UNSUPPORTED');
+      expect(r.summary.status).toBe('failed');expect(r.changes).toHaveLength(0);expect(r.diagnostics.map(d=>d.code)).toContain('VERSION_UNSUPPORTED');
     }
   });
   for(const demo of ['refactor','dolphin','example'] as const) it(`${demo} deterministic golden`,()=>{

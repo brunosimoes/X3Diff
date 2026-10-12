@@ -188,6 +188,16 @@ export class X3DPane {
       } catch {}
     }
   }
+  /** Fade or restore named Materials of the loaded scene without reloading it. */
+  setTransparency(values: ReadonlyArray<readonly [material: string, transparency: number]>): void {
+    const scene = this.canvas.browser?.currentScene;
+    if (!scene) return;
+    for (const [name, value] of values) {
+      try {
+        scene.getNamedNode(name).transparency = value;
+      } catch {}
+    }
+  }
   clearCue(): void {
     for (const cue of this.activeCues)
       try {

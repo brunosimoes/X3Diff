@@ -37,7 +37,7 @@ describe('catalogued node types', () => {
     expect(kinds(r)).toEqual(['geometry:geometryChanged:height']);
   });
 
-  it('reports an edited position animation instead of skipping it', () => {
+  it('reports edited position animation', () => {
     const route = (reach: number) =>
       `<Transform DEF="T"/><TimeSensor DEF="C" loop="true"/>` +
       `<PositionInterpolator DEF="P" key="0 1" keyValue="0 0 0 ${reach} 0 0"/>` +
@@ -132,7 +132,7 @@ describe('catalogued node types', () => {
     ).toEqual(['INVALID_FIELD', 'INVALID_FIELD']);
   });
 
-  it('still marks what remains outside the catalog', () => {
+  it('diagnoses nodes outside the catalog', () => {
     const r = diff('<Fog/><Cone/>', '<Fog/><Cone/>');
     expect(r.summary.status).toBe('incomplete');
     expect(r.diagnostics.map((d) => d.message)).toEqual([

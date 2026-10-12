@@ -12,7 +12,6 @@ import {
   type Primitive,
   type VolumeResolution,
 } from './shapeGeometry';
-import { buildDiffScene } from './diffScene';
 
 export interface SolidRegionsResult {
   xml: string;
@@ -23,7 +22,6 @@ export interface SolidRegionsResult {
   method: 'csg' | 'voxel';
   cellSize?: number;
   approximate?: boolean;
-  cueByChangeId: Record<string, string>;
 }
 
 function makeBrush(item: Primitive, resolution: VolumeResolution): Brush {
@@ -55,7 +53,6 @@ function appendRegion(
   scene: Element,
   geometry: BufferGeometry,
   def: string,
-  offset: number,
   color: string,
   glow: string,
   transparency = 0,
@@ -139,7 +136,7 @@ export function buildSolidRegions(
         report.changes.some(
           (c) =>
             c.confidence !== 'low' &&
-            ['geometry', 'transform'].includes(c.category) &&
+            (['geometry', 'transform'].includes(c.category) || c.kind === 'nodeMoved') &&
             (affectsShape(b.path, c.beforeNode?.path) || affectsShape(a.path, c.afterNode?.path)),
         ) &&
         !report.changes.some(
@@ -150,40 +147,23 @@ export function buildSolidRegions(
     );
   if (!pair?.a) return null;
 
-  // Keep the complete change scene; replace only the selected pair's visible surfaces.
+  // Package this pair's measured regions; the view supplies scene context and framing.
   const compose = (
     volumeDoc: Document,
   ): {
     xml: string;
     pairPaths: { before: string; after: string };
-    cueByChangeId: Record<string, string>;
   } => {
-    const context = buildDiffScene(beforeXML, afterXML, report);
-    const doc = new DOMParser().parseFromString(context.xml, 'application/xml');
+    const doc = volumeDoc;
     const scene = doc.getElementsByTagName('Scene')[0];
-    const replaced = new Set([
-      `B_${pair.b.shape.getAttribute('DEF')}`,
-      `A_${pair.a!.shape.getAttribute('DEF')}`,
-    ]);
-    for (const shape of Array.from(doc.getElementsByTagName('Shape'))) {
-      if (!replaced.has(shape.getAttribute('DEF') ?? '')) continue;
-      const hidden = doc.createElement('Switch');
-      hidden.setAttribute('whichChoice', '-1');
-      shape.replaceWith(hidden);
-      hidden.append(shape);
-    }
     const volume = doc.createElement('Group');
     volume.setAttribute('DEF', 'X3DIFF_VOLUME_PAIR');
     for (const child of Array.from(volumeDoc.getElementsByTagName('Scene')[0].children)) {
-      if (child.localName !== 'Background') volume.append(doc.importNode(child, true));
+      if (child.localName !== 'Background') volume.append(child);
     }
     scene.append(volume);
-    const cues = { ...context.cueByChangeId };
-    for (const [id, cue] of Object.entries(cues))
-      if (replaced.has(cue)) cues[id] = 'X3DIFF_VOLUME_PAIR';
     return {
       xml: new XMLSerializer().serializeToString(doc),
-      cueByChangeId: cues,
       pairPaths: { before: pair.b.path, after: pair.a!.path },
     };
   };
@@ -209,7 +189,6 @@ export function buildSolidRegions(
         scene,
         results[3],
         'X3DIFF_BEFORE_CONTEXT',
-        -3.15,
         '0.45 0.62 0.78',
         '0.03 0.05 0.08',
         0.82,
@@ -218,7 +197,6 @@ export function buildSolidRegions(
         scene,
         results[4],
         'X3DIFF_AFTER_CONTEXT',
-        3.15,
         '0.45 0.62 0.78',
         '0.03 0.05 0.08',
         0.82,
@@ -228,7 +206,6 @@ export function buildSolidRegions(
           scene,
           results[0],
           'X3DIFF_BEFORE_ONLY',
-          -3.15,
           '1 0.08 0.46',
           '0.30 0.01 0.12',
         ),
@@ -236,7 +213,6 @@ export function buildSolidRegions(
           scene,
           results[1],
           'X3DIFF_SHARED',
-          0,
           '0.45 0.55 0.62',
           '0.04 0.05 0.06',
           0.55,
@@ -245,7 +221,6 @@ export function buildSolidRegions(
           scene,
           results[2],
           'X3DIFF_AFTER_ONLY',
-          3.15,
           '0.02 0.77 1',
           '0.01 0.17 0.30',
         ),
@@ -292,7 +267,6 @@ export function buildSolidRegions(
         scene,
         beforeOnly,
         'X3DIFF_BEFORE_ONLY',
-        -3.15,
         '1 0.08 0.46',
         '0.30 0.01 0.12',
       ),
@@ -300,7 +274,6 @@ export function buildSolidRegions(
         scene,
         shared,
         'X3DIFF_SHARED',
-        0,
         '0.45 0.55 0.62',
         '0.04 0.05 0.06',
         0.55,
@@ -309,7 +282,6 @@ export function buildSolidRegions(
         scene,
         afterOnly,
         'X3DIFF_AFTER_ONLY',
-        3.15,
         '0.02 0.77 1',
         '0.01 0.17 0.30',
       ),
@@ -318,7 +290,6 @@ export function buildSolidRegions(
       scene,
       brushBefore.geometry,
       'X3DIFF_BEFORE_CONTEXT',
-      0,
       '0.45 0.62 0.78',
       '0.03 0.05 0.08',
       0.88,
@@ -327,7 +298,6 @@ export function buildSolidRegions(
       scene,
       brushAfter.geometry,
       'X3DIFF_AFTER_CONTEXT',
-      0,
       '0.45 0.62 0.78',
       '0.03 0.05 0.08',
       0.88,

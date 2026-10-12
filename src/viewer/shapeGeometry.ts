@@ -111,7 +111,8 @@ export function parsePrimitives(xml: string): Primitive[] {
   const doc = new DOMParser().parseFromString(safe.xml, 'application/xml');
   const shapePaths = new Map<string, string>();
   for (const [path, cue] of safe.pathToCue)
-    if (/\/Shape\[\d+\]$/.test(path)) shapePaths.set(cue, path);
+    // A shape that is USE'd later shares its cue: the first path is the one it was defined at.
+    if (/\/Shape\[\d+\]$/.test(path) && !shapePaths.has(cue)) shapePaths.set(cue, path);
   const found: Primitive[] = [];
   for (const shape of Array.from(doc.getElementsByTagName('Shape'))) {
     const geometry = Array.from(shape.children).find((child) =>
@@ -149,9 +150,7 @@ export function shapeLabel(item: Primitive): string {
       owner = node;
       break;
     }
-  const shapes = Array.from(
-    (owner ?? item.shape.ownerDocument).getElementsByTagName('Shape'),
-  );
+  const shapes = Array.from((owner ?? item.shape.ownerDocument).getElementsByTagName('Shape'));
   const where = owner ? `in ${owner.getAttribute('DEF')}` : 'in the file';
   if (shapes.length === 1) return owner ? `${type} ${where}` : type;
   return `${type} · shape ${shapes.indexOf(item.shape) + 1} of ${shapes.length} ${where}`;

@@ -27,7 +27,7 @@ describe('incomplete comparisons keep what was compared and say what was not', (
     expect(result.diagnostics.some((d) => d.code === 'UNSUPPORTED_NODE')).toBe(true);
   });
 
-  it('still reports the changes found beside an uncatalogued node', () => {
+  it('reports supported changes beside an uncatalogued node', () => {
     expect(report.summary.status).toBe('incomplete');
     expect(report.changes.length).toBeGreaterThan(0);
     expect(report.changes.some((c) => c.field === 'translation')).toBe(true);
@@ -121,9 +121,9 @@ describe('incomplete comparisons keep what was compared and say what was not', (
       { side: 'before', kind: 'node', subject: 'Fog', count: 1 },
       { side: 'after', kind: 'node', subject: 'Fog', count: 1 },
     ]);
-    // A report written the old way (the element plus one entry per setting) reads the same.
-    const legacy = structuredClone(result);
-    legacy.diagnostics = [
+    // Settings of a skipped node do not count as additional coverage gaps.
+    const overlapping = structuredClone(result);
+    overlapping.diagnostics = [
       { code: 'UNSUPPORTED_NODE', severity: 'warning', side: 'before', message: 'Fog is opaque' },
       {
         code: 'UNSUPPORTED_FIELD',
@@ -133,7 +133,7 @@ describe('incomplete comparisons keep what was compared and say what was not', (
       },
       { code: 'UNSUPPORTED_NODE', severity: 'warning', side: 'after', message: 'Fog is opaque' },
     ];
-    expect(describeCoverage(legacy)).toEqual(describeCoverage(result));
+    expect(describeCoverage(overlapping)).toEqual(describeCoverage(result));
   });
 
   it('counts repeated elements and lists unsupported settings on known nodes', () => {

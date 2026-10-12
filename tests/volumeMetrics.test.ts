@@ -1,8 +1,28 @@
 import { BoxGeometry, Matrix4, SphereGeometry } from 'three';
 import { describe, expect, it } from 'vitest';
-import { enclosedVolume, summarizeVolumes } from '../src/viewer/volumeMetrics';
+import {
+  enclosedVolume,
+  hasMeasurableVolumes,
+  summarizeVolumes,
+} from '../src/viewer/volumeMetrics';
 
 describe('volume measurements', () => {
+  it('requires finite positive totals on both sides while allowing zero regions', () => {
+    expect(hasMeasurableVolumes({ beforeOnly: 0, shared: 0, afterOnly: 0 })).toBe(false);
+    expect(hasMeasurableVolumes({ beforeOnly: 0, shared: 0, afterOnly: 1 })).toBe(false);
+    expect(hasMeasurableVolumes({ beforeOnly: 1, shared: 0, afterOnly: 0 })).toBe(false);
+    expect(hasMeasurableVolumes({ beforeOnly: 0, shared: 1, afterOnly: 0 })).toBe(true);
+    expect(hasMeasurableVolumes({ beforeOnly: 1, shared: 0, afterOnly: 1 })).toBe(true);
+    for (const invalid of [-1, NaN, Infinity])
+      expect(hasMeasurableVolumes({ beforeOnly: invalid, shared: 1, afterOnly: 1 })).toBe(false);
+    expect(
+      hasMeasurableVolumes({
+        beforeOnly: Number.MAX_VALUE,
+        shared: Number.MAX_VALUE,
+        afterOnly: 0,
+      }),
+    ).toBe(false);
+  });
   it('measures a translated, rotated and scaled closed box independent of indexing', () => {
     const geometry = new BoxGeometry(2, 3, 4);
     geometry.applyMatrix4(new Matrix4().makeScale(2, 1, 3));

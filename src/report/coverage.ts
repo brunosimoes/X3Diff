@@ -35,7 +35,7 @@ export function opaqueSubject(message: string): string {
 
 /**
  * What an incomplete report does not vouch for. It reads only fields that schema 1.0
- * already exports (`summary.status`, `diagnostics`, `changes`), so the workbench banner
+ * exports (`summary.status`, `diagnostics`, `changes`), so the workbench banner
  * and any consumer of the exported JSON derive the same list.
  */
 export function describeCoverage(report: X3DiffReport): Coverage {
@@ -50,7 +50,6 @@ export function describeCoverage(report: X3DiffReport): Coverage {
     else items.set(key, { ...item, count: 1 });
   };
   // A skipped element already implies its own settings; listing each one again is noise.
-  // (Earlier reports listed them as separate UNSUPPORTED_FIELD entries.)
   const skippedTypes = new Set(
     report.diagnostics
       .filter((d) => d.code === 'UNSUPPORTED_NODE')

@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-const read = (p: string) => readFileSync(fileURLToPath(new URL(`../${p}`, import.meta.url)), 'utf8');
+const read = (p: string) =>
+  readFileSync(fileURLToPath(new URL(`../${p}`, import.meta.url)), 'utf8');
 
 /** Directives a browser ignores in a meta tag, so they can only live in the response header. */
 const HEADER_ONLY = ['frame-ancestors', 'report-uri', 'report-to', 'sandbox'];

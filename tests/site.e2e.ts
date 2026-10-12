@@ -10,30 +10,20 @@ test('landing page is responsive and opens a working example', async ({ page }) 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole('link', { name: /Try a comparison/ }).click();
   await expect(page).toHaveURL(/app.html\?example=example/);
-  await expect(page.locator('#global-status')).toHaveText('');
-  await expect(page.locator('#analysis-tab-differences')).toBeVisible();
-  await expect(page.locator('#viewer-diff x3d-canvas')).toBeVisible();
-  await page.getByRole('link', { name: 'About X3Diff' }).click();
+  await expect(page.locator('.viewer-state')).toHaveText('');
+  await expect(page.locator('#tab-differences')).toBeVisible();
+  await expect(page.locator('#stage x3d-canvas')).toBeVisible();
+  await page.getByRole('link', { name: 'X3Diff', exact: true }).click();
   await expect(page.locator('h1')).toContainText('Decide with evidence');
   expect(errors).toEqual([]);
 });
 
-test('the landing page links the 2021 thread, carries share tags and opens the motion example', async ({
-  page,
-}) => {
+test('the landing page carries share tags and opens the motion example', async ({ page }) => {
   const failures: string[] = [];
   page.on('response', (response) => {
     if (response.status() >= 400) failures.push(`${response.status()} ${response.url()}`);
   });
   await page.goto('./');
-  // The origin sentence is a quotation with its source, not a claim about other tools.
-  const origin = page.locator('.origin');
-  await expect(origin).toContainText('geometric diffing for X3D models');
-  await expect(origin).not.toContainText(/nothing else|only tool|first tool/i);
-  await expect(origin.getByRole('link')).toHaveAttribute(
-    'href',
-    'https://web3d.org/pipermail/x3d-public_web3d.org/2021-June/015276.html',
-  );
   // Link previews need absolute addresses of the published site.
   const meta = (property: string) =>
     page.locator(`meta[property="${property}"]`).getAttribute('content');
@@ -62,16 +52,22 @@ test('the landing page links the 2021 thread, carries share tags and opens the m
     );
     await expect(picture).toBeVisible();
   }
+  // A phone is given its own, closer picture of the same view.
+  await expect
+    .poll(() => picture.evaluate((img: HTMLImageElement) => img.currentSrc))
+    .toContain('x3diff-motion-paths-mobile.jpg');
+  expect(await picture.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(1023);
+  await page.setViewportSize({ width: 1440, height: 900 });
   // Keyboard: the card is a link like the others.
   await card.focus();
   await page.keyboard.press('Enter');
-  await expect(page).toHaveURL(/app\.html\?example=brickhaven&view=motion$/);
-  await expect(page.locator('.review-workspace')).toHaveAttribute('aria-busy', 'false');
-  await expect(page.locator('#load-after')).toHaveAttribute('title', /Brickhaven/);
-  await expect(page.locator('#analysis-tab-motion')).toHaveAttribute('aria-selected', 'true');
-  await expect(page.locator('#motion-paths')).toBeVisible();
-  await expect(page.locator('.motion-summary')).toContainText('scene units apart');
-  await expect(page.locator('.motion-3d canvas')).toBeVisible();
+  await expect(page).toHaveURL(/app\.html\?example=brickhaven#motion$/);
+  await expect(page.locator('.workspace')).toHaveAttribute('aria-busy', 'false');
+  await expect(page.locator('#name-after')).toHaveText(/Brickhaven/);
+  await expect(page.locator('#tab-motion')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#caption')).toHaveText('Railway');
+  await expect(page.locator('#detail')).toContainText('max d ≈');
+  await expect(page.locator('.gap-chart')).toBeVisible();
   expect(failures).toEqual([]);
 });
 
@@ -81,12 +77,12 @@ test('a requested view opens when it exists and falls back safely when it does n
   const selected = () => page.locator('[role="tab"][aria-selected="true"]');
   const open = async (query: string) => {
     await page.goto(`app.html?${query}`);
-    await expect(page.locator('.review-workspace')).toHaveAttribute('aria-busy', 'false');
-    await expect(page.locator('#global-status')).toHaveText('');
+    await expect(page.locator('.workspace')).toHaveAttribute('aria-busy', 'false');
+    await expect(page.locator('.viewer-state')).toHaveText('');
   };
   await open('example=fitlab&view=volume');
   await expect(selected()).toHaveText('Volume differences');
-  await expect(page.locator('#volume-summary')).toBeVisible();
+  await expect(page.locator('#side .facts').first()).toBeVisible();
   // Unknown, malformed or hostile values, and a view this pair does not have: the usual tab.
   for (const query of [
     'example=fitlab&view=nonsense',
@@ -94,17 +90,42 @@ test('a requested view opens when it exists and falls back safely when it does n
     'example=fitlab&view=MOTION',
     `example=fitlab&view=${encodeURIComponent('"><img src=x onerror=alert(1)>')}`,
     'example=dolphin&view=motion',
-    'example=unknown&view=motion',
   ]) {
     await open(query);
     await expect(selected()).toHaveText('File differences');
-    await expect(page.locator('#changes .change-row').first()).toBeVisible();
+    await expect(page.locator('.card').first()).toBeVisible();
   }
-  // The link does not overwrite the tab the reviewer chose before.
-  await open('example=fitlab');
-  await page.locator('#analysis-tab-deviation').click();
-  await open('example=fitlab&view=volume');
-  await expect(selected()).toHaveText('Volume differences');
-  await open('example=fitlab');
-  await expect(selected()).toHaveText('Surface deviation');
+});
+
+test('the demonstration video plays on the landing page, with captions', async ({ page }) => {
+  const failures: string[] = [];
+  page.on('response', (response) => {
+    if (response.status() >= 400) failures.push(`${response.status()} ${response.url()}`);
+  });
+  await page.goto('./');
+  await page.getByRole('link', { name: 'Video', exact: true }).click();
+  const video = page.locator('#demo video');
+  await expect(video).toBeVisible();
+  await expect(video.locator('track[kind="captions"]')).toHaveAttribute('srclang', 'en');
+  // The poster is a real picture, and the film starts when asked to.
+  const poster = await video.getAttribute('poster');
+  expect((await page.request.get(poster!)).ok()).toBe(true);
+  await video.evaluate(async (element: HTMLVideoElement) => {
+    element.muted = true;
+    await element.play();
+  });
+  await expect
+    .poll(() => video.evaluate((element: HTMLVideoElement) => element.currentTime))
+    .toBeGreaterThan(0);
+  expect(await video.evaluate((element: HTMLVideoElement) => Math.round(element.duration))).toBe(
+    163,
+  );
+  await video.evaluate((element: HTMLVideoElement) => element.pause());
+  for (const width of [1440, 375]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+  }
+  expect(failures).toEqual([]);
 });

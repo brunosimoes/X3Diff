@@ -6,9 +6,8 @@ import { readAnalysisGeometry, type AnalysisPair } from '../viewer/analysisGeome
 import type { VolumeResolution } from '../viewer/shapeGeometry';
 import type { SolidRegionsResult } from '../viewer/solidRegions';
 import { sampleSurface, summarizeSurface } from '../viewer/surfaceDeviation';
-import { summarizeVolumes } from '../viewer/volumeMetrics';
-import type { MotionAnalysis } from './motionAnalysis';
-import { volumeMethod } from './volumeSummary';
+import { hasMeasurableVolumes, summarizeVolumes } from '../viewer/volumeMetrics';
+import { volumeMethod } from './volumeMethod';
 
 const fmt = (v: number) => Number(v.toPrecision(5)).toString();
 const reason = (error: unknown) =>
@@ -25,7 +24,7 @@ export interface FactsRequest {
   resolution: VolumeResolution;
   /** Volume regions already computed for the selected pair, if the tab has been opened. */
   solid?: SolidRegionsResult;
-  motion: MotionAnalysis;
+  motion: { facts(): AnalysisFacts[] };
 }
 
 /**
@@ -124,6 +123,7 @@ export async function gatherAnalysisFacts(request: FactsRequest): Promise<Analys
           }) ?? undefined;
       }
       if (!solid) throw new Error('no supported matched geometry pair for a volume comparison');
+      if (!hasMeasurableVolumes(solid.volumes)) throw new Error('no closed solid to measure');
       const summary = summarizeVolumes(solid.volumes);
       facts.push({
         view: 'Volume differences',

@@ -280,16 +280,29 @@ export function parseX3D(text: string, side: 'before' | 'after', name?: string):
     nodes: ParsedNode[] = [];
   let numericScalars = 0;
   for (const e of elementChildren(root)) {
-    if (local(e) === 'head')
+    if (local(e) === 'head') {
+      const counts = new Map<string, number>();
       for (const m of elementChildren(e)) {
-        if (local(m) === 'meta')
+        const type = local(m);
+        const ordinal = (counts.get(type) || 0) + 1;
+        counts.set(type, ordinal);
+        if (type === 'meta')
           meta.push(`${m.getAttribute('name') || ''}\u0000${m.getAttribute('content') || ''}`);
-        if (local(m) === 'component')
+        else if (type === 'component')
           summary.components.push({
             name: m.getAttribute('name') || '',
             level: Number(m.getAttribute('level')) || 0,
           });
+        else
+          diagnostics.push({
+            code: 'UNSUPPORTED_NODE',
+            severity: 'warning',
+            side,
+            message: `${type} is opaque`,
+            path: `/X3D/head/${type}[${ordinal}]`,
+          });
       }
+    }
   }
   const visit = (e: Element, parentPath: string, ordinal: number): ParsedNode | null => {
     const type = local(e),

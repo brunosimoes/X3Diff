@@ -1,6 +1,6 @@
 # GitHub Pages deployment
 
-The landing page is at `/X3Diff/`; the interactive workbench is at `/X3Diff/app.html`; the list of compared node types is at `/X3Diff/coverage.html`. All three are built by Vite, and `vite.config.ts` writes the node list and its count into `coverage.html` from the catalog. Example links support `?example=example`, `dolphin`, `fitlab`, `brickhaven`, and `forgeworks`; an unknown name opens the Dolphin. Add `&view=` with `differences`, `sections`, `volume`, `deviation` or `motion` to open that analysis view, for example `app.html?example=brickhaven&view=motion`; a view that is unknown or not available for the pair leaves the usual tab open. The link-preview tags in `index.html` (`og:url`, `og:image`) hold the absolute address of the published site: change them if the site moves.
+The landing page is at `/X3Diff/`, the workbench at `/X3Diff/app.html`, and the compared node types at `/X3Diff/coverage.html`. Vite builds all three pages and generates the coverage list from the catalog. Example links support `?example=example`, `dolphin`, `fitlab`, `brickhaven` and `forgeworks`; unknown names open Brickhaven. Select a view with `#differences`, `#sections`, `#volume`, `#deviation` or `#motion`, for example `app.html?example=brickhaven#motion`. Unavailable or unknown views open File differences. The link-preview tags in `index.html` hold absolute published URLs; update them if the site moves.
 
 ## Publish
 
@@ -14,7 +14,7 @@ The workflow first calls the CI workflow (`ci.yml`: type checking, unit tests, b
 
 The workflow reads `base_path` from `actions/configure-pages` and passes it as `PAGES_BASE_PATH`, with a trailing slash. This handles repository URLs and custom domains. Local development defaults to `/`.
 
-`npm run test:preview` builds and tests `/X3Diff/` by default, including the worker, renderer, examples, video playback and the report downloads. Set `PAGES_BASE_PATH` to another path with a trailing slash to test a different deployment location. The production suite runs every UI spec except the two that import development source modules; those remain in `npm run test:browser`.
+`npm run test:preview` builds and tests `/X3Diff/` by default, including the worker, renderer, examples, settings and report downloads. Set `PAGES_BASE_PATH` to another path with a trailing slash to test a different deployment location. Both browser suites exercise the application and its published entry points.
 
 For a local project-path check in PowerShell:
 

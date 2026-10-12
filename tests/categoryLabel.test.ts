@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { categoryLabel, categoryNames } from '../src/app/changeRegister';
+import { categoryLabel, categoryNames } from '../src/report/presentation';
 
 describe('category filter labels', () => {
   // Every `category: '...'` literal the comparison engine can put in a report.

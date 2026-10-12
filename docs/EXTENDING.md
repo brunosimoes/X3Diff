@@ -1,32 +1,36 @@
 # Extending X3Diff
 
-## Add a node type to the comparison
+## Add a node type
 
 The catalog in `src/x3d/catalog.ts` is generated; do not edit it by hand.
 
-1. Add the node name to `selected` in `scripts/build-catalog.ts` and run `npm run catalog`. The generator reads the official X3DUOM 3.3, the X3D 3.3 XSD and the X3DUOM 4.0 (pinned by SHA-256; pass `--model`, `--schema` and `--model40` with local copies to work offline). It takes every field of the node with its type and default, checks each default against 4.0 and records one that changed as `default40`. A field that only X3D 4.0 has is compared only when it is listed in `additions40`; otherwise it is diagnosed as not compared. Correct a known error of the published model in `errata`, with the clause of the specification.
-2. Give the node a category and change kind in `category()` in `src/diff/compare.ts`, and the category and its fields reader-facing names in `src/app/changeRegister.ts` (`categoryNames`, `fieldNames`).
-3. Check how the previews treat it: `src/viewer/sanitize.ts` passes every catalogued node to the renderer, and `src/viewer/diffScene.ts` lists the nodes left out of the Differences overlay.
-4. Add unit tests for defaults, tolerances and DEF/USE (`tests/lights.test.ts` is a model), update the node count in `tests/catalogNodes.test.ts`, regenerate the golden reports in `fixtures/golden/` (their `catalog.supportedNodes` list changes), and update the number of node types in `README.md`, `docs/USER_GUIDE.md`, `docs/ABSTRACT.md`, `docs/X3D_COVERAGE.md` and the abstract in `index.html`.
+1. Add the node name to `selected` in `scripts/build-catalog.ts` and run `npm run catalog`. The generator reads official X3DUOM 3.3, X3D 3.3 XSD and X3DUOM 4.0 sources pinned by SHA-256. Pass `--model`, `--schema` and `--model40` for offline copies. Version-specific defaults and fields are recorded explicitly.
+2. Give the node a category and change kind in `src/diff/compare.ts`, and reader-facing category and field names in `src/report/presentation.ts`.
+3. Check preview sanitization in `src/viewer/sanitize.ts`, overlay classification in `src/app/calmScene.ts`, and whether geometry or motion analysis supports the node.
+4. Add tests for defaults, tolerances and DEF/USE. Update catalog counts and golden report fixtures, then align the public coverage documentation and abstract. `coverage.html` gets its node list and count from the catalog during serving and building.
 
-## Add a view
+## Add an analysis view
 
-`src/app/analysisTabs.ts` exports `AnalysisTabs` and `AnalysisTab`. The registry handles navigation, ARIA state, ordering, preferences, availability filtering and activation errors. Each module owns its data, content and computation.
-
-Add a panel inside `.analysis-panel` and register it in `src/app/main.ts`:
+`src/app/ui.ts` defines `Tab` and `Workbench`. Every module draws on one stage and uses the shared side panel, controls, selection and settings. Add the module to the tab list in `src/app/main.ts`.
 
 ```ts
-analysisTabs.register({
-  id: 'validation',
-  label: 'Validation',
-  description: 'Explain input diagnostics and supported features.',
-  panel: validationElement,
-  available: () => validationModel.hasData,
-  activate: () => validationView.show(validationModel),
-  deactivate: () => validationView.pause(),
-});
+export function validationTab(wb: Workbench): Tab {
+  return {
+    id: 'validation',
+    label: 'Validation',
+    available: () => wb.report.diagnostics.length > 0,
+    async show(alive) {
+      wb.side.replaceChildren(make('h2', '', 'Validation'));
+      const result = await prepareValidation(wb.report);
+      if (!alive()) return;
+      wb.side.append(renderValidation(result));
+    },
+  };
+}
 ```
 
-Use a unique lowercase ID. Keep `available()` cheap and side-effect-free: prepare module data during the comparison lifecycle, then call `analysisTabs.refresh()` after the workspace is visible. A new registered tab automatically appears in Customize when data is available. `required: true` prevents hiding a baseline view. Registration is local source-code composition, not a remote plugin loader. `src/app/motionAnalysis.ts` (the Motion paths tab) is an example of a self-contained view: it owns its data, renderer and controls, and is wired in `main.ts` by one `register` call plus `load` and `clear`.
+Use a unique lowercase ID and a cheap, side-effect-free `available()`. `show(alive)` receives a predicate that becomes false when navigation, theme or comparison changes supersede it. Check it before applying asynchronous results. View errors appear on the stage without disabling other tabs.
 
-`activate()` may be synchronous or return a Promise. An activation failure displays an error without disabling the other tabs. Stale activation errors are ignored after navigation. Modules remain responsible for cancelling their own asynchronous work and releasing resources. The linked view allocates its WebGL renderer on first activation, renders on interaction/resize, and disposes replaced geometry on comparison changes; switching tabs preserves its ruler and camera.
+Use `hide()` to stop playback and `dispose()` to release resources when the comparison is replaced. Allocate expensive renderers on demand and dispose replaced geometry. `facts()` optionally returns printable measurements with their scope and limits. The geometry and motion modules provide examples.
+
+`wb.selection` carries declaration records, supported pair paths and an optional animated-object name. Preserve an existing analysis object when a selection is ambiguous or unsupported, and explain that choice in the panel. `wb.volumeResolution` and `wb.setVolumeResolution()` share the saved setting with Settings. All input-derived names and strings must be rendered as text, not HTML.

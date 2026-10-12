@@ -52,8 +52,8 @@
         <dl class="status-list">
           <dt>Complete</dt>
           <dd>
-            Everything in both files is inside the catalog and was compared. The workbench shows no
-            badge for this result.
+            Supported declarations were compared without coverage errors or notes. This result
+            applies to the declared comparison model and tolerances. The workbench shows no badge.
           </dd>
           <dt>With notes</dt>
           <dd>
@@ -64,7 +64,8 @@
           <dd>
             Some content was not compared: a node type outside the list above, an unsupported
             setting, an invalid value, or objects that could not be matched with confidence. The
-            differences shown are real, but the skipped parts may hide more.
+            reported changes cover supported declarations, with uncertain matches identified;
+            skipped content may contain further differences.
           </dd>
           <dt>Failed</dt>
           <dd>
@@ -75,9 +76,10 @@
         <h2>Outside the catalog</h2>
         <p class="coverage-note">
           A node type that is not listed is skipped as a whole, together with everything inside it.
-          This includes prototypes (PROTO/EXTERNPROTO), scripts and fog. External scenes and media
-          are declared but never fetched. “No differences found” is meaningful only for the content
-          that was compared, at the tolerances in use.
+          This includes prototypes (PROTO/EXTERNPROTO), scripts, fog and unit declarations in the
+          document header. Component requirements are compared as document details. External scenes
+          and media are declared but never fetched. “No differences found” is meaningful only for
+          the content that was compared, at the tolerances in use.
         </p>
         <p class="coverage-note">
           The geometry views (Slice &amp; measure, Surface deviation, Volume differences) measure

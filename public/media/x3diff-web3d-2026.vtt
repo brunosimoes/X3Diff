@@ -1,0 +1,94 @@
+WEBVTT
+
+00:00:00.502 --> 00:00:05.271
+X3Diff. Understand the change. Decide with evidence.
+
+00:00:06.909 --> 00:00:11.241
+Changing a 3D scene has never been easier, especially with AI assistance.
+
+00:00:11.566 --> 00:00:15.825
+Knowing whether the change is right still takes judgment.
+
+00:00:16.145 --> 00:00:23.094
+X3Diff puts two revisions of an X3D scene side by side: before, after, and an
+
+00:00:23.094 --> 00:00:26.433
+overlay that shows where they differ.
+
+00:00:29.247 --> 00:00:33.446
+Drop two files onto the stage, or pick an example.
+
+00:00:33.762 --> 00:00:38.960
+The comparison starts by itself, and your files never leave the browser.
+
+00:00:41.102 --> 00:00:47.700
+File differences lists every declaration that changed: a transform, a material, a
+
+00:00:47.700 --> 00:00:48.596
+coordinate.
+
+00:00:48.913 --> 00:00:52.296
+Select one, and the object lights up in the scene.
+
+00:00:55.036 --> 00:00:59.292
+Slice and measure cuts both revisions on the same plane.
+
+00:00:59.591 --> 00:01:04.342
+Sweep the plane to see inside, and click two points to measure the gap.
+
+00:01:04.670 --> 00:01:10.861
+Measurements use the scene's own coordinates, so a part that moved still shows as
+
+00:01:10.861 --> 00:01:11.320
+moved.
+
+00:01:13.036 --> 00:01:19.065
+Volume differences separates what the two versions share from what only one of them
+
+00:01:19.065 --> 00:01:21.971
+has, and reports how much space changed.
+
+00:01:24.613 --> 00:01:28.861
+Surface deviation colours a mesh by its distance from the other revision.
+
+00:01:29.164 --> 00:01:34.829
+Check both directions: an addition and a removal leave different traces.
+
+00:01:37.267 --> 00:01:40.580
+Motion paths follows animated objects.
+
+00:01:40.900 --> 00:01:47.756
+X3Diff traces where each revision travels, and how far apart the two paths are.
+
+00:01:50.510 --> 00:01:53.933
+X3Diff is explicit about its limits.
+
+00:01:54.240 --> 00:02:00.125
+When a file contains something it cannot compare, the result is marked incomplete,
+
+00:02:00.125 --> 00:02:02.852
+and it lists exactly what was skipped.
+
+00:02:03.161 --> 00:02:10.738
+It reads X3D versions 3.0 to 4.0, and exports its findings as a printable report or
+
+00:02:10.738 --> 00:02:13.112
+as data for your pipeline.
+
+00:02:15.167 --> 00:02:19.226
+X3Diff links what changed in the file to what changed in the scene.
+
+00:02:19.544 --> 00:02:23.697
+It supports the decision; it does not make it for you.
+
+00:02:25.333 --> 00:02:31.809
+X3Diff deserves consideration for tool of the year, because it closes a practical
+
+00:02:31.809 --> 00:02:35.726
+gap between seeing a change and understanding it.
+
+00:02:36.025 --> 00:02:38.949
+It is open source and runs in your browser.
+
+00:02:39.250 --> 00:02:41.258
+Try it with your own revisions.

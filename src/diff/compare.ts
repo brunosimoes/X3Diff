@@ -338,7 +338,34 @@ export function compareX3D(
             afterNode: ref(b),
           });
       }
+    const beforeByPath = new Map(allBefore.map((node) => [node.path, node]));
+    const afterByPath = new Map(allAfter.map((node) => [node.path, node]));
     for (const [a, b] of paired) {
+      const parentBefore = beforeByPath.get(a.parentPath);
+      const parentAfter = afterByPath.get(b.parentPath);
+      const identityKnown =
+        (a.def && b.def && (a.def === b.def || renames.get(a.def) === b.def)) ||
+        (parentBefore && parentAfter && paired.has(parentBefore) && used.has(parentAfter));
+      // Parent identity survives sibling reordering and verified DEF renames.
+      if (
+        identityKnown &&
+        (parentBefore || parentAfter) &&
+        (!parentBefore || !parentAfter || paired.get(parentBefore) !== parentAfter)
+      )
+        add({
+          kind: 'nodeMoved',
+          severity: 'high',
+          confidence: 'high',
+          category: 'structure',
+          message: `${a.type} parent changed`,
+          field: 'parent',
+          beforePath: a.path,
+          afterPath: b.path,
+          beforeNode: ref(a),
+          afterNode: ref(b),
+          before: { value: parentBefore?.def || a.parentPath },
+          after: { value: parentAfter?.def || b.parentPath },
+        });
       if (a.field !== b.field)
         add({
           kind: 'nodeMoved',
@@ -552,6 +579,23 @@ export function compareX3D(
         before: { value: before.summary.profile },
         after: { value: after.summary.profile },
       });
+    const components = (scene: ParsedScene) =>
+      scene.summary.components
+        .map(({ name, level }) => [name, level] as const)
+        .sort(([a, x], [b, y]) => a.localeCompare(b) || x - y);
+    const componentsBefore = components(before);
+    const componentsAfter = components(after);
+    if (JSON.stringify(componentsBefore) !== JSON.stringify(componentsAfter))
+      add({
+        kind: 'documentContextChanged',
+        severity: 'medium',
+        confidence: 'high',
+        category: 'document',
+        message: 'Component requirements changed',
+        field: 'components',
+        before: { value: componentsBefore.map(([name, level]) => `${name}: level ${level}`) },
+        after: { value: componentsAfter.map(([name, level]) => `${name}: level ${level}`) },
+      });
   }
   changes.sort((a, b) =>
     [a.category, a.beforePath || a.afterPath || '', a.kind, a.field || '']
@@ -575,10 +619,9 @@ export function compareX3D(
   }
   const unsupportedCount = diagnostics.filter((d) => d.code.startsWith('UNSUPPORTED')).length;
   const status =
-    before.fatal || after.fatal
+    before.fatal || after.fatal || !versionOK
       ? 'failed'
-      : !versionOK ||
-          diagnostics.some((d) => d.severity === 'error') ||
+      : diagnostics.some((d) => d.severity === 'error') ||
           unsupportedCount ||
           changes.some((c) => c.kind === 'matchUncertain')
         ? 'incomplete'

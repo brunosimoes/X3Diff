@@ -98,7 +98,8 @@ function sanitize(source: string): SanitizedPreview {
     } else {
       for (const attr of Array.from(node.attributes)) {
         if (
-          /(?:url$|^src$|^href$|^on)/i.test(attr.localName) ||
+          /(?:url$|^src$|^href$)/i.test(attr.localName) ||
+          (/^on/i.test(attr.localName) && !(LIGHTS.has(name) && attr.localName === 'on')) ||
           (attr.namespaceURI && attr.namespaceURI !== 'http://www.w3.org/2000/xmlns/')
         ) {
           node.removeAttribute(attr.name);

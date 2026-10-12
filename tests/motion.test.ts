@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { DOMParser } from '@xmldom/xmldom';
+import { motionFacts } from '../src/report/motionFacts';
 import {
   compareMotion,
   readMotionScene,
@@ -37,6 +38,33 @@ const spinner = (cycle: number, arm = 0) =>
   `<ROUTE fromNode="Turn" fromField="value_changed" toNode="Turntable" toField="set_rotation"/>`;
 
 describe('motion paths', () => {
+  it('reports measured gaps with their time, tracking point and sampling boundary', () => {
+    const pairs = compareMotion(scene(slider(2)), scene(slider(5)));
+    const [facts] = motionFacts(pairs);
+    expect(facts.object).toBe('Slider');
+    expect(facts.rows).toContainEqual([
+      'Path length per cycle, before → after (scene units)',
+      '4 → 10',
+    ]);
+    expect(facts.rows).toContainEqual(['Largest gap at the same moment', '3 scene units, at 2 s']);
+    expect(facts.rows).toContainEqual(['Point followed', 'centre of the object']);
+    expect(facts.limits).toContain('240 sampling intervals');
+    expect(motionFacts(pairs, 0)).toEqual([]);
+  });
+
+  it('does not export rounding noise as a motion difference', () => {
+    const [pair] = compareMotion(scene(slider(2)), scene(slider(2)));
+    pair.gapByTime = pair.gapByTime.map(() => pair.size * 1e-8);
+    pair.gapByPhase = pair.gapByPhase.map(() => pair.size * 1e-8);
+    const [facts] = motionFacts([pair]);
+    expect(facts.rows).toContainEqual(['Largest gap at the same moment', '0']);
+    expect(facts.rows).toContainEqual(['Average gap at the same moment', '0']);
+    expect(facts.rows).toContainEqual([
+      'Largest gap at the same point of the cycle',
+      '0: the route is the same, only the timing differs',
+    ]);
+  });
+
   it('follows a PositionInterpolator and measures the gap between two reaches', () => {
     const [pair] = compareMotion(scene(slider(2)), scene(slider(5)));
     expect(pair.def).toBe('Slider');

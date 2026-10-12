@@ -324,6 +324,22 @@ h3 {
   transform: translateY(-4px);
   border-color: #5d9a87;
 }
+/* Each example shows what it looks like before it says what it is for. */
+.example-grid > a:not(.example-wide) > img {
+  display: block;
+  width: calc(100% + 50px);
+  max-width: none;
+  height: auto;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  margin: -25px -25px 20px;
+  border-radius: 7px 7px 0 0;
+  border-bottom: 1px solid #d1ded4;
+  background: #e8eff1;
+}
+.example-grid > a:not(.example-wide) > img + .example-index {
+  margin-bottom: 14px;
+}
 .example-index {
   font-size: 9px;
   letter-spacing: 1.3px;
@@ -492,6 +508,22 @@ footer p {
   .number {
     margin-bottom: 13px;
   }
+  /* Each example shows what it looks like before it says what it is for. */
+  .example-grid > a > img {
+    display: block;
+    width: calc(100% + 50px);
+    max-width: none;
+    height: auto;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    margin: -25px -25px 20px;
+    border-radius: 7px 7px 0 0;
+    border-bottom: 1px solid #d1ded4;
+    background: #e8eff1;
+  }
+  .example-grid > a > img + .example-index {
+    margin-bottom: 14px;
+  }
   .example-index {
     margin-bottom: 18px;
   }
@@ -528,6 +560,12 @@ footer p {
     transition: none;
   }
 }
+/* A section that follows another on the same background would stack two full paddings:
+   the section above already ends in generous space, so these start closer to it. */
+.video-section,
+#approach {
+  padding-top: 28px;
+}
 .video-section video {
   display: block;
   width: 100%;
@@ -556,7 +594,6 @@ footer p {
   .site-header,
   .hero,
   .video-section,
-  .web3d-context,
   #approach,
   #try,
   .closing,
@@ -605,51 +642,12 @@ footer p {
   }
 }
 
-.web3d-context {
-  display: grid;
-  grid-template-columns: 1fr 1.5fr;
-  gap: 50px;
-  padding: 40px 32px;
-  border-block: 1px solid #d9e2dd;
-  background: #edf3ee;
-}
-.web3d-context h2 {
-  font-size: 30px;
-  margin: 0;
-}
-.web3d-context .eyebrow {
-  margin-bottom: 16px;
-}
-.web3d-context p:not(.eyebrow) {
+/* What X3D is, for a reader who arrives without knowing: it opens the demonstration. */
+.section-title > .context {
   font-size: 14px;
   color: #536b65;
-  margin-bottom: 14px;
 }
-.web3d-context strong {
-  color: #244b4c;
-}
-.web3d-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
-  margin-top: 22px;
-}
-@media (max-width: 680px) {
-  .web3d-context {
-    grid-template-columns: 1fr;
-    gap: 22px;
-    padding: 30px 20px;
-  }
-}
-/* Where the tool comes from, under the hero's reassurance line. */
-.origin {
-  font-size: 12px;
-  line-height: 1.6;
-  color: #4d6463;
-  max-width: 520px;
-  margin: 14px 0 0;
-}
-.origin a {
+.section-title > .context a {
   color: var(--accent);
   font-weight: 650;
   text-decoration: underline;
@@ -669,12 +667,17 @@ footer p {
   flex: 1 1 0;
   min-width: 0;
 }
-.example-wide img {
+/* A phone gets its own picture of this view, closer in; see the <picture> in index.html. */
+.example-wide picture {
+  display: block;
   flex: 1.25 1 0;
   min-width: 0;
+  align-self: center;
+}
+.example-wide img {
+  display: block;
   width: 100%;
   height: auto;
-  align-self: center;
   border-radius: 6px;
   border: 1px solid #2d434f;
   background: #101c29;
@@ -684,8 +687,9 @@ footer p {
     flex-direction: column;
     gap: 18px;
   }
-  .example-wide img {
+  .example-wide picture {
     flex: none;
+    align-self: stretch;
   }
 }
 /* Coverage page: the catalogued node types and what each status means. */

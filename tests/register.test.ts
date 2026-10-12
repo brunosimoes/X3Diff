@@ -137,7 +137,7 @@ describe('register entries', () => {
       'DemoObject',
       'Cylinder · shape 2 of 2 in the file',
     ]);
-    // Without the scenes the old fallback still works.
+    // Without scene data, labels use node types and ordinals.
     expect(groupChanges(objects.report.changes).map((group) => group.label)).toEqual([
       'DemoObject',
       'Transform 2',
@@ -297,7 +297,7 @@ describe('small changes at a tight tolerance', () => {
     expect(numberPair(2, 2.000004)).toEqual(['2', '2.000004']);
     expect(numberPair(0.1234561, 0.1234569)).toEqual(['0.123456', '0.123457']);
     expect(numberPair(1e-9, 2e-9)).toEqual(['1e-9', '2e-9']);
-    // Anything that already differs at five digits, or does not differ at all, is as before.
+    // Five significant digits suffice for distinct values and equal pairs.
     expect(numberPair(0.8, 1)).toEqual(['0.8', '1']);
     expect(numberPair(1 / 3, 2 / 3)).toEqual(['0.33333', '0.66667']);
     expect(numberPair(1 / 3, 1 / 3)).toEqual(['0.33333', '0.33333']);

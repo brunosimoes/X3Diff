@@ -29,6 +29,8 @@ export function categoryLabel(category: string, count: number): string {
   return `${name} · ${count}`;
 }
 export const fieldNames: Record<string, string> = {
+  parent: 'Parent',
+  components: 'Component requirements',
   point: 'Coordinates',
   radius: 'Radius',
   diffuseColor: 'Diffuse color',
@@ -395,7 +397,8 @@ export function summarizeChanges(changes: readonly ChangeRecord[]): string {
       }
     for (const c of group.changes) {
       if (c.kind === 'nodeAdded' || c.kind === 'nodeRemoved') continue;
-      if (c.category === 'geometry')
+      if (isObject && c.kind === 'nodeMoved') words.add('moved');
+      else if (c.category === 'geometry')
         words.add(c.field === 'point' || c.field === 'coordIndex' ? 'reshaped' : 'resized');
       else if (['material', 'appearance', 'texture'].includes(c.category)) words.add('recoloured');
       else if (c.category === 'transform')
